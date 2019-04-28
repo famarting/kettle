@@ -5,7 +5,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.slf4j.Logger;
@@ -58,7 +57,7 @@ public class ApiServerRequestHandler implements RequestHandler{
 	
 	public void handle (RoutingContext ctx) {
 
-        log.info("Request {} {}", ctx.request().method(), ctx.request().path());
+        log.info("New request {} {}", ctx.request().method(), ctx.request().path());
 		try {
 			ApiServerRequestContext requestContext = validateRequest(ctx);
 			switch (ctx.request().method()) {
@@ -84,8 +83,11 @@ public class ApiServerRequestHandler implements RequestHandler{
 			ctx.response()
 				.setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
 				.end(e.getMessage());
-		} finally {
-			log.info("Request processed {} {}", ctx.request().method(), ctx.request().path());			
+		} catch (Throwable e) {
+			log.error("Unknow error(throwable) ", e);
+			ctx.response()
+				.setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
+				.end(e.getMessage());
 		}
 	}
 
@@ -103,7 +105,7 @@ public class ApiServerRequestHandler implements RequestHandler{
 		String path = ctx.request().path();
 		
 		String[] pathItems = Stream.of(path.split("/"))
-				.filter(Predicate.not(String::isBlank))
+				.filter(s->s!=null && !s.trim().isEmpty())
 				.toArray(String[]::new);
 		
 		String group = pathItems[1];
@@ -151,13 +153,13 @@ public class ApiServerRequestHandler implements RequestHandler{
 			if(resource.getMetadata() == null) {
 				resource.setMetadata(new ResourceMetadata());
 			}
-			if(resource.getMetadata().getName() == null || resource.getMetadata().getName().isBlank()) {
+			if(resource.getMetadata().getName() == null || resource.getMetadata().getName().trim().isEmpty()) {
 				resource.getMetadata().setName(requestContext.resourceName().get());
 			}else if(!resource.getMetadata().getName().equals(requestContext.resourceName().get())) {
 				throw new RequestValidationException("Name doesn't match");
 			}
 			if(requestContext.resourceType().scope() == ResourceScope.Namespaced) {
-				if(resource.getMetadata().getNamespace() == null || resource.getMetadata().getNamespace().isBlank()) {
+				if(resource.getMetadata().getNamespace() == null || resource.getMetadata().getNamespace().trim().isEmpty()) {
 					resource.getMetadata().setNamespace(requestContext.resourceType().namespace());
 				}else if(resource.getMetadata().getNamespace() != null && !resource.getMetadata().getNamespace().equals(requestContext.resourceType().namespace())) {
 					throw new RequestValidationException("Namespace doesn't match");
@@ -185,8 +187,9 @@ public class ApiServerRequestHandler implements RequestHandler{
 	}
 
 	private void sendResponse(ApiServerRequestContext requestContext, Object resource) throws JsonProcessingException {
-		String responseContentType = Optional.ofNullable(requestContext.httpContext().request().getHeader("Accept"))
-				.orElseGet(()->requestContext.httpContext().parsedHeaders().contentType().value());
+		String responseContentType = Optional.ofNullable(requestContext.httpContext().request().getHeader(HttpHeaders.ACCEPT))
+				.map(acceptHeader -> acceptHeader != null && acceptHeader.equals("*/*") ? null : acceptHeader)
+				.orElseGet(()->requestContext.httpContext().request().getHeader(HttpHeaders.CONTENT_TYPE));
 		
 		String responseBody;
 		if(responseContentType.equals("application/yaml")) {
