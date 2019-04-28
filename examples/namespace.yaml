@@ -1,0 +1,4 @@
+apiVersion: core/v1beta1
+kind: Namespace
+metadata:
+  name: test-namespace

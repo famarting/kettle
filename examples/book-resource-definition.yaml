@@ -1,0 +1,15 @@
+apiVersion: core/v1beta1
+kind: ResourceDefinition
+metadata:
+  name: book-definition
+  labels:
+    app: library
+spec:
+  group: library.io
+  version: v1alpha1
+  scope: Namespaced
+  names:
+    kind: Book
+    listKind: Books
+    plural: books
+    singular: book
