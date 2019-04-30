@@ -1,5 +1,6 @@
 package io.kettle.api;
 
+
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
@@ -134,17 +135,28 @@ public class ApiServerRequestHandler implements RequestHandler{
 		return new ApiServerRequestContext(definition, ctx, type, name);
 	}
 
-	protected void handleDelete(ApiServerRequestContext requestContext) {
-		// TODO Auto-generated method stub
-		
+	protected void handleDelete(ApiServerRequestContext requestContext) throws RequestValidationException, JsonProcessingException {
+		if(requestContext.resourceName().isPresent()) {
+			
+			Resource deletedResource = delete(requestContext);
+
+			sendResponse(requestContext, deletedResource);
+			
+		}else {
+			throw new RequestValidationException("Resource name in path is mandatory for resource creation");
+		}		
 	}
 
+	protected Resource delete(ApiServerRequestContext requestContext) {
+		return resourcesRepository.deleteResource(requestContext.resourceType(), requestContext.definition(), requestContext.resourceName().get());
+	}
+	
 	protected void handlePost(ApiServerRequestContext requestContext) throws JsonParseException, JsonMappingException, IOException, RequestValidationException {
 
 		if(requestContext.resourceName().isPresent()) {
 			Buffer body = requestContext.httpContext().getBody();
 			Resource resource = getRequestObjectMapper(requestContext).readValue(body.getBytes(), Resource.class);
-			if(!formatApiVersion(requestContext.definition().getGroup(), requestContext.definition().getVersion()).equals(resource.getApiVersion())) {
+			if(!ApiServerUtils.formatApiVersion(requestContext.definition().getGroup(), requestContext.definition().getVersion()).equals(resource.getApiVersion())) {
 				throw new RequestValidationException("apiVersion doesn't match");
 			}
 			if(!requestContext.definition().getNames().getKind().equals(resource.getKind())) {
@@ -189,7 +201,8 @@ public class ApiServerRequestHandler implements RequestHandler{
 	private void sendResponse(ApiServerRequestContext requestContext, Object resource) throws JsonProcessingException {
 		String responseContentType = Optional.ofNullable(requestContext.httpContext().request().getHeader(HttpHeaders.ACCEPT))
 				.map(acceptHeader -> acceptHeader != null && acceptHeader.equals("*/*") ? null : acceptHeader)
-				.orElseGet(()->requestContext.httpContext().request().getHeader(HttpHeaders.CONTENT_TYPE));
+				.or(()->Optional.ofNullable(requestContext.httpContext().request().getHeader(HttpHeaders.CONTENT_TYPE)))
+				.orElseGet(()->"application/yaml");
 		
 		String responseBody;
 		if(responseContentType.equals("application/yaml")) {
@@ -206,7 +219,7 @@ public class ApiServerRequestHandler implements RequestHandler{
 	protected void handleGet(ApiServerRequestContext requestContext) throws JsonProcessingException {
 		DefinitionResourceSpec definition = requestContext.definition();
 		if(requestContext.resourceName().isPresent()) {
-			Resource resource = resourcesRepository.getResource(new ResourceKey(formatApiVersion(definition.getGroup(), definition.getVersion()), definition.getNames().getKind(), requestContext.resourceType(), requestContext.resourceName().get()));
+			Resource resource = resourcesRepository.getResource(new ResourceKey(ApiServerUtils.formatApiVersion(definition.getGroup(), definition.getVersion()), definition.getNames().getKind(), requestContext.resourceType(), requestContext.resourceName().get()));
 			if(resource == null) {
 				requestContext.httpContext().response()
 					.setStatusCode(HttpResponseStatus.NOT_FOUND.code())
@@ -222,14 +235,10 @@ public class ApiServerRequestHandler implements RequestHandler{
 
 	private List<Resource> list(ApiServerRequestContext requestContext, DefinitionResourceSpec definition) {
 		if (requestContext.resourceType().scope() == ResourceScope.Global) {
-			return resourcesRepository.doGlobalQuery(formatApiVersion(definition.getGroup(), definition.getVersion()), definition.getNames().getKind());
+			return resourcesRepository.doGlobalQuery(ApiServerUtils.formatApiVersion(definition.getGroup(), definition.getVersion()), definition.getNames().getKind());
 		} else {
-			return resourcesRepository.doNamespacedQuery(formatApiVersion(definition.getGroup(), definition.getVersion()), definition.getNames().getKind(), requestContext.resourceType().namespace());
+			return resourcesRepository.doNamespacedQuery(ApiServerUtils.formatApiVersion(definition.getGroup(), definition.getVersion()), definition.getNames().getKind(), requestContext.resourceType().namespace());
 		}
-	}
-	
-	private String formatApiVersion(String group, String version) {
-		return String.format("%s/%s", group, version);
 	}
 	
 	protected ObjectMapper getRequestObjectMapper(ApiServerRequestContext requestContext) {

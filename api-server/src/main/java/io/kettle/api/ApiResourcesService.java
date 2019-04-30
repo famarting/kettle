@@ -39,7 +39,13 @@ public class ApiResourcesService {
 		
 		RequestHandler requestHandler = requestHandlerFactory.createRequestHandler();
 		BodyHandler bodyHandler = BodyHandler.create();
-		router.route(pathExpr)
+		router.get(pathExpr)
+			.produces("application/json")
+			.produces("application/yaml")
+			.handler(ctx -> {
+				requestHandler.handle(ctx);
+			});
+		router.post(pathExpr)
 			.produces("application/json")
 			.produces("application/yaml")
 			.consumes("application/json")
@@ -47,7 +53,13 @@ public class ApiResourcesService {
 			.handler(bodyHandler::handle).handler(ctx -> {
 				requestHandler.handle(ctx);
 			});
-	
+		router.delete(pathExpr)
+			.produces("application/json")
+			.produces("application/yaml")
+			.handler(ctx -> {
+				requestHandler.handle(ctx);
+			});
+
 	}
 	
 }

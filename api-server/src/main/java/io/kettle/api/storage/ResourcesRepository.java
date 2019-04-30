@@ -2,12 +2,15 @@ package io.kettle.api.storage;
 
 import java.util.List;
 
+import org.infinispan.client.hotrod.Flag;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.Search;
 import org.infinispan.query.dsl.QueryFactory;
 
+import io.kettle.api.ApiServerUtils;
 import io.kettle.api.resource.Resource;
 import io.kettle.api.resource.ResourceKey;
+import io.kettle.api.resource.extension.DefinitionResourceSpec;
 import io.kettle.api.resource.type.ResourceType;
 
 public class ResourcesRepository {
@@ -20,6 +23,11 @@ public class ResourcesRepository {
 		this.cache = cache;
 		this.queryFactory = Search.getQueryFactory(this.cache);
 
+	}
+	
+	public Resource deleteResource(ResourceType resourceType, DefinitionResourceSpec definition, String resourceName) {
+		return this.cache.withFlags(Flag.FORCE_RETURN_VALUE)
+				.remove(new ResourceKey(ApiServerUtils.formatApiVersion(definition.getGroup(), definition.getVersion()), definition.getNames().getKind(), resourceType, resourceName));
 	}
 	
 	public void createResource(ResourceType resourceType, Resource resource) {
