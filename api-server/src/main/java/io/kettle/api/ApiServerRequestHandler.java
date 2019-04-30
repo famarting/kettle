@@ -199,10 +199,11 @@ public class ApiServerRequestHandler implements RequestHandler{
 	}
 
 	private void sendResponse(ApiServerRequestContext requestContext, Object resource) throws JsonProcessingException {
-		String responseContentType = Optional.ofNullable(requestContext.httpContext().request().getHeader(HttpHeaders.ACCEPT))
-				.map(acceptHeader -> acceptHeader != null && acceptHeader.equals("*/*") ? null : acceptHeader)
-				.or(()->Optional.ofNullable(requestContext.httpContext().request().getHeader(HttpHeaders.CONTENT_TYPE)))
-				.orElseGet(()->"application/yaml");
+		String responseContentType = Optional.ofNullable(
+				Optional.ofNullable(requestContext.httpContext().request().getHeader(HttpHeaders.ACCEPT))
+						.map(acceptHeader -> acceptHeader != null && acceptHeader.equals("*/*") ? null : acceptHeader)
+						.orElseGet(() -> requestContext.httpContext().request().getHeader(HttpHeaders.CONTENT_TYPE)))
+				.orElseGet(() -> "application/yaml");
 		
 		String responseBody;
 		if(responseContentType.equals("application/yaml")) {

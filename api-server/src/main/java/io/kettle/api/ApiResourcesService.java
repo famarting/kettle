@@ -27,25 +27,28 @@ public class ApiResourcesService {
 		
 		//TODO validate resource
 		
-		String pathExpr;
+		String[] pathExpr;
 			
 		if(resource.getScope() == ResourceScope.Global) {
-			pathExpr = String.format("/apis/%s/%s/%s/*", resource.getGroup(), resource.getVersion(), resource.getNames().getPlural());
+			pathExpr = new String[] { String.format("/apis/%s/%s/%s/*", resource.getGroup(), resource.getVersion(), resource.getNames().getPlural()), 
+					String.format("/apis/%s/%s/%s", resource.getGroup(), resource.getVersion(), resource.getNames().getPlural()) };
 		}else {
-			pathExpr = String.format("/apis/%s/%s/namespaces/:namespace/%s/*", resource.getGroup(), resource.getVersion(), resource.getNames().getPlural());
+			pathExpr = new String[] { String.format("/apis/%s/%s/namespaces/:namespace/%s/*", resource.getGroup(), resource.getVersion(), resource.getNames().getPlural()), 
+					String.format("/apis/%s/%s/namespaces/:namespace/%s", resource.getGroup(), resource.getVersion(), resource.getNames().getPlural())};
 		}
 		
-		log.info("registering route "+pathExpr);
+		log.info("registering route "+pathExpr[0]);
 		
 		RequestHandler requestHandler = requestHandlerFactory.createRequestHandler();
 		BodyHandler bodyHandler = BodyHandler.create();
-		router.get(pathExpr)
+		for(String expr : pathExpr) {
+			router.get(expr)
 			.produces("application/json")
 			.produces("application/yaml")
 			.handler(ctx -> {
 				requestHandler.handle(ctx);
 			});
-		router.post(pathExpr)
+		router.post(expr)
 			.produces("application/json")
 			.produces("application/yaml")
 			.consumes("application/json")
@@ -53,12 +56,13 @@ public class ApiResourcesService {
 			.handler(bodyHandler::handle).handler(ctx -> {
 				requestHandler.handle(ctx);
 			});
-		router.delete(pathExpr)
+		router.delete(expr)
 			.produces("application/json")
 			.produces("application/yaml")
 			.handler(ctx -> {
 				requestHandler.handle(ctx);
 			});
+		}
 
 	}
 	
