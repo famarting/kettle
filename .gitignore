@@ -27,3 +27,6 @@ hs_err_pid*
 RemoteSystemsTempFiles      
 
 **/target
+**/.settings
+.vscode
+**/.factorypath

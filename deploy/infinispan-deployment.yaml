@@ -1,0 +1,21 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: infinispan-server
+  labels:
+    app: infinispan-server
+    template: infinispan-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: infinispan-server
+  template:
+    metadata:
+      labels:
+        app: infinispan-server        
+    spec:
+      containers:
+      - name: infinispan-server
+        image: jboss/infinispan-server:9.4.11.Final
+        imagePullPolicy: IfNotPresent

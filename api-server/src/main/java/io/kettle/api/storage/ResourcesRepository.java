@@ -34,6 +34,11 @@ public class ResourcesRepository {
 		this.cache.put(new ResourceKey(resource.getApiVersion(), resource.getKind(), resourceType, resource.getMetadata().getName()), resource);
 	}
 	
+	public void updateResource(ResourceType resourceType, Resource resource) {
+		//FIXME improve this
+		this.cache.put(new ResourceKey(resource.getApiVersion(), resource.getKind(), resourceType, resource.getMetadata().getName()), resource);
+	}
+	
 	public Resource getResource(ResourceKey key) {
 		return this.cache.get(key);
 	}

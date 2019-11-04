@@ -68,6 +68,9 @@ public class ApiServerRequestHandler implements RequestHandler{
 			case POST:
 				handlePost(requestContext);
 				break;
+			case PUT:
+				handlePut(requestContext);
+				break;
 			case DELETE:
 				handleDelete(requestContext);
 				break;
@@ -151,36 +154,36 @@ public class ApiServerRequestHandler implements RequestHandler{
 		return resourcesRepository.deleteResource(requestContext.resourceType(), requestContext.definition(), requestContext.resourceName().get());
 	}
 	
+	protected void handlePut(ApiServerRequestContext requestContext) throws JsonParseException, JsonMappingException, IOException, RequestValidationException {
+		if(requestContext.resourceName().isPresent()) {
+			Resource resource = validateRequestBody(requestContext);
+			
+			Resource existingResource = resourcesRepository.getResource(new ResourceKey(resource.getApiVersion(), resource.getKind(), requestContext.resourceType(), resource.getMetadata().getName()));
+			if(existingResource == null) {
+				requestContext.httpContext().response()
+					.setStatusCode(HttpResponseStatus.NOT_FOUND.code())
+					.end();
+			}else {
+				resource.getMetadata().setSelfLink(requestContext.httpContext().request().path());
+				resource.getMetadata().setUid(existingResource.getMetadata().getUid());
+				resource.getMetadata().setCreationTimestamp(existingResource.getMetadata().getCreationTimestamp());
+				
+				update(requestContext, resource);
+
+				sendResponse(requestContext, resource);
+			}
+			
+		}else {
+			throw new RequestValidationException("Resource name in path is mandatory for resource creation");
+		}
+	}
+
 	protected void handlePost(ApiServerRequestContext requestContext) throws JsonParseException, JsonMappingException, IOException, RequestValidationException {
 
 		if(requestContext.resourceName().isPresent()) {
-			Buffer body = requestContext.httpContext().getBody();
-			Resource resource = getRequestObjectMapper(requestContext).readValue(body.getBytes(), Resource.class);
-			if(!ApiServerUtils.formatApiVersion(requestContext.definition().getGroup(), requestContext.definition().getVersion()).equals(resource.getApiVersion())) {
-				throw new RequestValidationException("apiVersion doesn't match");
-			}
-			if(!requestContext.definition().getNames().getKind().equals(resource.getKind())) {
-				throw new RequestValidationException("Kind doesn't match");
-			}
-			if(resource.getMetadata() == null) {
-				resource.setMetadata(new ResourceMetadata());
-			}
-			if(resource.getMetadata().getName() == null || resource.getMetadata().getName().trim().isEmpty()) {
-				resource.getMetadata().setName(requestContext.resourceName().get());
-			}else if(!resource.getMetadata().getName().equals(requestContext.resourceName().get())) {
-				throw new RequestValidationException("Name doesn't match");
-			}
-			if(requestContext.resourceType().scope() == ResourceScope.Namespaced) {
-				if(resource.getMetadata().getNamespace() == null || resource.getMetadata().getNamespace().trim().isEmpty()) {
-					resource.getMetadata().setNamespace(requestContext.resourceType().namespace());
-				}else if(resource.getMetadata().getNamespace() != null && !resource.getMetadata().getNamespace().equals(requestContext.resourceType().namespace())) {
-					throw new RequestValidationException("Namespace doesn't match");
-				}
-			}else if(resource.getMetadata().getNamespace() != null){
-				throw new RequestValidationException("Namespace is not used in global resources");
-			}
+			Resource resource = validateRequestBody(requestContext);
 			
-			resource.getMetadata().setSelfLink(requestContext.httpContext().currentRoute().getPath());
+			resource.getMetadata().setSelfLink(requestContext.httpContext().request().path());
 			resource.getMetadata().setUid(UUID.randomUUID().toString());
 			resource.getMetadata().setCreationTimestamp(Instant.now().toString());
 			
@@ -193,7 +196,40 @@ public class ApiServerRequestHandler implements RequestHandler{
 		}
 		
 	}
-
+	
+	private Resource validateRequestBody(ApiServerRequestContext requestContext) throws IOException, JsonParseException, JsonMappingException, RequestValidationException {
+		Buffer body = requestContext.httpContext().getBody();
+		Resource resource = getRequestObjectMapper(requestContext).readValue(body.getBytes(), Resource.class);
+		if(!ApiServerUtils.formatApiVersion(requestContext.definition().getGroup(), requestContext.definition().getVersion()).equals(resource.getApiVersion())) {
+			throw new RequestValidationException("apiVersion doesn't match");
+		}
+		if(!requestContext.definition().getNames().getKind().equals(resource.getKind())) {
+			throw new RequestValidationException("Kind doesn't match");
+		}
+		if(resource.getMetadata() == null) {
+			resource.setMetadata(new ResourceMetadata());
+		}
+		if(resource.getMetadata().getName() == null || resource.getMetadata().getName().trim().isEmpty()) {
+			resource.getMetadata().setName(requestContext.resourceName().get());
+		}else if(!resource.getMetadata().getName().equals(requestContext.resourceName().get())) {
+			throw new RequestValidationException("Name doesn't match");
+		}
+		if(requestContext.resourceType().scope() == ResourceScope.Namespaced) {
+			if(resource.getMetadata().getNamespace() == null || resource.getMetadata().getNamespace().trim().isEmpty()) {
+				resource.getMetadata().setNamespace(requestContext.resourceType().namespace());
+			}else if(resource.getMetadata().getNamespace() != null && !resource.getMetadata().getNamespace().equals(requestContext.resourceType().namespace())) {
+				throw new RequestValidationException("Namespace doesn't match");
+			}
+		}else if(resource.getMetadata().getNamespace() != null){
+			throw new RequestValidationException("Namespace is not used in global resources");
+		}
+		return resource;
+	}
+	
+	protected void update(ApiServerRequestContext requestContext, Resource resource) {
+		resourcesRepository.updateResource(requestContext.resourceType(), resource);
+	}
+	
 	protected void create(ApiServerRequestContext requestContext, Resource resource) {
 		resourcesRepository.createResource(requestContext.resourceType(), resource);
 	}
