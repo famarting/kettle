@@ -29,7 +29,7 @@ public class ApiServerSmokeTest {
 
 	Logger log = LoggerFactory.getLogger(this.getClass());
 	
-	int port = 8080;
+	int port = 7658;
 	String host = "localhost";
 
 	Vertx vertx = Vertx.vertx();
@@ -38,7 +38,16 @@ public class ApiServerSmokeTest {
 	@Test
 	void testApiServer() throws InterruptedException, ExecutionException, TimeoutException {
 
+		int minDefintions = 2;
+		
+		JsonArray definitions = listDefinitions();
+		log.info(definitions.encodePrettily());
+		assertEquals(minDefintions, definitions.size());
+		
 		createBookDefinition();
+		
+		definitions = listDefinitions();
+		assertEquals(minDefintions+1, definitions.size());
 		
 		String namespaceName = "test-namespace";
 		createNamespace(namespaceName);
@@ -51,7 +60,7 @@ public class ApiServerSmokeTest {
 		assertEquals(created, found);
 		
 		String book2Name = "book2";
-		createBookResource(namespaceName, book2Name);
+		JsonObject created2 = createBookResource(namespaceName, book2Name);
 		
 		JsonArray list = listBooksResources(namespaceName);
 		
@@ -64,6 +73,24 @@ public class ApiServerSmokeTest {
 		list = listBooksResources(namespaceName);
 		
 		assertEquals(1, list.size());
+		
+		JsonObject deleted2 = deleteBookResource(namespaceName, book2Name);
+		assertEquals(created2, deleted2);
+
+		list = listBooksResources(namespaceName);
+
+		assertEquals(0, list.size());
+		
+		deleteBookDefinition();
+		
+		definitions = listDefinitions();
+		assertEquals(minDefintions, definitions.size());
+		
+		deleteNamespace(namespaceName);
+		
+		JsonArray namespaces = listNamespaces();
+		
+		assertEquals(0, namespaces.size());
 	}
 
 	private JsonObject deleteBookResource(String namespaceName, String book1Name)
@@ -71,7 +98,7 @@ public class ApiServerSmokeTest {
 		CompletableFuture<JsonObject> deleteBookFuture = new CompletableFuture<>();
 		client.delete(port, host, "/apis/library.io/v1alpha1/namespaces/"+namespaceName+"/books/"+book1Name)
 			.as(BodyCodec.jsonObject())
-			.putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/json")
+			.putHeader(HttpHeaders.ACCEPT.toString(), "application/json")
 			.send(ar -> responseHandler(ar, deleteBookFuture, this::httpOk, "200", "Error deleting resource", true));
 		JsonObject deleted = deleteBookFuture.get(10, TimeUnit.SECONDS);
 		return deleted;
@@ -82,7 +109,7 @@ public class ApiServerSmokeTest {
 		CompletableFuture<JsonArray> getBooksFuture = new CompletableFuture<>();
 		client.get(port, host, "/apis/library.io/v1alpha1/namespaces/"+namespaceName+"/books")
 			.as(BodyCodec.jsonArray())
-			.putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/json")
+			.putHeader(HttpHeaders.ACCEPT.toString(), "application/json")
 			.send(ar -> responseHandler(ar, getBooksFuture, this::httpOk, "200", "Error listing resources", true));
 		JsonArray list = getBooksFuture.get(10, TimeUnit.SECONDS);
 		return list;
@@ -93,7 +120,7 @@ public class ApiServerSmokeTest {
 		CompletableFuture<JsonObject> getBookFuture = new CompletableFuture<>();
 		client.get(port, host, "/apis/library.io/v1alpha1/namespaces/"+namespaceName+"/books/"+book1Name)
 			.as(BodyCodec.jsonObject())
-			.putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/json")
+			.putHeader(HttpHeaders.ACCEPT.toString(), "application/json")
 			.send(ar -> responseHandler(ar, getBookFuture, this::httpOk, "200", "Error reading resource", true));
 		JsonObject found = getBookFuture.get(10, TimeUnit.SECONDS);
 		return found;
@@ -111,6 +138,25 @@ public class ApiServerSmokeTest {
 		return book1Future.get(10, TimeUnit.SECONDS);
 	}
 
+	private JsonArray listNamespaces() throws InterruptedException, ExecutionException, TimeoutException {
+		CompletableFuture<JsonArray> getBooksFuture = new CompletableFuture<>();
+		client.get(port, host, "/apis/core/v1beta1/namespaces/")
+			.as(BodyCodec.jsonArray())
+			.putHeader(HttpHeaders.ACCEPT.toString(), "application/json")
+			.send(ar -> responseHandler(ar, getBooksFuture, this::httpOk, "200", "Error listing resources", true));
+		JsonArray list = getBooksFuture.get(10, TimeUnit.SECONDS);
+		return list;
+	}
+	
+	private void deleteNamespace(String namespaceName) throws InterruptedException, ExecutionException, TimeoutException {
+		CompletableFuture<JsonObject> deleteBookFuture = new CompletableFuture<>();
+		client.delete(port, host, "/apis/core/v1beta1/namespaces/"+namespaceName)
+			.as(BodyCodec.jsonObject())
+			.putHeader(HttpHeaders.ACCEPT.toString(), "application/json")
+			.send(ar -> responseHandler(ar, deleteBookFuture, this::httpOk, "200", "Error deleting resource", true));
+		deleteBookFuture.get(10, TimeUnit.SECONDS);
+	}
+	
 	private void createNamespace(String namespaceName)
 			throws InterruptedException, ExecutionException, TimeoutException {
 		JsonObject testNamespace = createResource("core/v1beta1", "Namespace", namespaceName);
@@ -123,8 +169,28 @@ public class ApiServerSmokeTest {
 		namespaceFuture.get(10, TimeUnit.SECONDS);
 	}
 
+	private JsonArray listDefinitions() throws InterruptedException, ExecutionException, TimeoutException {
+		CompletableFuture<JsonArray> getBooksFuture = new CompletableFuture<>();
+		client.get(port, host, "/apis/core/v1beta1/resourcesdefinitions/")
+			.as(BodyCodec.jsonArray())
+			.putHeader(HttpHeaders.ACCEPT.toString(), "application/json")
+			.send(ar -> responseHandler(ar, getBooksFuture, this::httpOk, "200", "Error listing resources", true));
+		JsonArray list = getBooksFuture.get(10, TimeUnit.SECONDS);
+		return list;
+	}
+	
+	private void deleteBookDefinition() throws InterruptedException, ExecutionException, TimeoutException {
+		String bookDefinitionName = "books";
+		CompletableFuture<JsonObject> deleteBookFuture = new CompletableFuture<>();
+		client.delete(port, host, "/apis/core/v1beta1/resourcesdefinitions/"+bookDefinitionName)
+			.as(BodyCodec.jsonObject())
+			.putHeader(HttpHeaders.ACCEPT.toString(), "application/json")
+			.send(ar -> responseHandler(ar, deleteBookFuture, this::httpOk, "200", "Error deleting resource", true));
+		deleteBookFuture.get(10, TimeUnit.SECONDS);
+	}
+	
 	private void createBookDefinition() throws InterruptedException, ExecutionException, TimeoutException {
-		String bookDefinitionName = "book-definition";
+		String bookDefinitionName = "books";
 		JsonObject bookDefinition = createResource("core/v1beta1", "ResourceDefinition", bookDefinitionName);
 		JsonObject spec = new JsonObject();
 		spec.put("group", "library.io");

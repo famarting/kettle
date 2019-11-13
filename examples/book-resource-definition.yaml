@@ -2,8 +2,8 @@ apiVersion: core/v1beta1
 kind: ResourceDefinition
 metadata:
   name: book-definition
-  labels:
-    app: library
+  # labels:
+  #   app: library
 spec:
   group: library.io
   version: v1alpha1

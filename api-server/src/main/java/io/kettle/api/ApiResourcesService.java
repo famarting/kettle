@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -29,12 +30,18 @@ public class ApiResourcesService {
 
 	private Map<DefinitionResourceKey, List<Route>> routesByResource;
 	
-	@Inject
-	public ApiResourcesService(Router router) {
-		this.router = router;
+	//FIXME injecting router is buggy
+//	@Inject
+//	public ApiResourcesService(Router router) {
+	public ApiResourcesService() {
+//		this.router = router;
 		this.routesByResource = new ConcurrentHashMap<>();
 	}
 
+     public void init(@Observes Router router) {
+     	this.router = router;
+     }
+	
 	public void registerResourceRoute(DefinitionResourceSpec resource, RequestHandlerFactory requestHandlerFactory) {
 		
 		//TODO validate resource
@@ -52,7 +59,6 @@ public class ApiResourcesService {
 		log.info("registering route "+pathExpr[0]);
 		
 		RequestHandler requestHandler = requestHandlerFactory.createRequestHandler();
-		BodyHandler bodyHandler = BodyHandler.create();
 		routesByResource.put(new DefinitionResourceKey(resource),
 			Stream.of(pathExpr)
 				.flatMap(expr->
@@ -68,7 +74,7 @@ public class ApiResourcesService {
 							.produces("application/yaml")
 							.consumes("application/json")
 							.consumes("application/yaml")
-							.handler(bodyHandler::handle)
+							.handler(BodyHandler.create())
 							.handler(ctx -> {
 								requestHandler.handle(ctx);
 							}),
@@ -77,7 +83,7 @@ public class ApiResourcesService {
 							.produces("application/yaml")
 							.consumes("application/json")
 							.consumes("application/yaml")
-							.handler(bodyHandler::handle)
+							.handler(BodyHandler.create())
 							.handler(ctx -> {
 								requestHandler.handle(ctx);
 							}),

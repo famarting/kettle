@@ -28,18 +28,17 @@ import io.kettle.api.resource.ResourceMetadata;
 import io.kettle.api.resource.extension.DefinitionResourceSpec;
 import io.kettle.api.resource.extension.ResourceScope;
 import io.kettle.api.resource.type.ResourceType;
-import io.kettle.api.storage.DefinitionResourceRepository;
 import io.kettle.api.storage.ResourcesRepository;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
 public class ApiServerRequestHandler implements RequestHandler{
 
 	private Logger log = LoggerFactory.getLogger(this.getClass());
 	
-	DefinitionResourceRepository definitionsRepository;
 	ResourcesRepository resourcesRepository;
 	
 	protected ObjectMapper yamlMapper = new YAMLMapper(new YAMLFactory()
@@ -51,8 +50,7 @@ public class ApiServerRequestHandler implements RequestHandler{
 											.setSerializationInclusion(Include.NON_EMPTY)
 											.enable(SerializationFeature.INDENT_OUTPUT);
 	
-	public ApiServerRequestHandler(DefinitionResourceRepository definitionsRepository, ResourcesRepository resourcesRepository) {
-		this.definitionsRepository = definitionsRepository;
+	public ApiServerRequestHandler(ResourcesRepository resourcesRepository) {
 		this.resourcesRepository = resourcesRepository;
 	}
 	
@@ -116,11 +114,11 @@ public class ApiServerRequestHandler implements RequestHandler{
 		String version = pathItems[2];
 		String pluralName = pathItems[3];
 
-		ResourceType type = new ResourceType(ResourceScope.Global);
+		ResourceType type = ResourceType.global();
 		Optional<String> name = Optional.empty();
 		if(pluralName.equals("namespaces") && pathItems.length >= 6) {
 			String namespace = pathItems[4];
-			type = new ResourceType(namespace);
+			type = ResourceType.namespaced(namespace);
 			pluralName = pathItems[5];
 			if(pathItems.length == 7) {
 				name = Optional.of(pathItems[6]);				
@@ -129,13 +127,25 @@ public class ApiServerRequestHandler implements RequestHandler{
 			name = Optional.of(pathItems[4]);
 		}
 		
-		DefinitionResourceSpec definition = definitionsRepository.getDefinition(group, version, pluralName);
+		//by convention definition resources name is the pluralName
+		Resource definitionResource = resourcesRepository.getResource(
+			new ResourceKey(
+				ApiServerUtils.formatApiVersion(ApiResourcesManager.CORE_API_GROUP, ApiResourcesManager.CORE_API_VERSION),
+				ApiResourcesManager.DEFINITION_RESOURCE_KIND,
+				ResourceType.global(),
+				pluralName));
 		
-		if(definition == null) {
+		if(definitionResource == null) {
 			throw new RequestValidationException("Resource type not found");
 		}
 
-		return new ApiServerRequestContext(definition, ctx, type, name);
+		DefinitionResourceSpec definition = new JsonObject(definitionResource.getSpec()).mapTo(DefinitionResourceSpec.class);
+
+		if (group.equals(definition.getGroup()) && version.equals(definition.getVersion()) && type.scope() == definition.getScope()) {
+			return new ApiServerRequestContext(definition, ctx, type, name);
+		} else {
+			throw new RequestValidationException("Api not found");
+		}
 	}
 
 	protected void handleDelete(ApiServerRequestContext requestContext) throws RequestValidationException, JsonProcessingException {
@@ -151,7 +161,8 @@ public class ApiServerRequestHandler implements RequestHandler{
 	}
 
 	protected Resource delete(ApiServerRequestContext requestContext) {
-		return resourcesRepository.deleteResource(requestContext.resourceType(), requestContext.definition(), requestContext.resourceName().get());
+		return resourcesRepository.deleteResource(
+				resourceKey(requestContext));
 	}
 	
 	protected void handlePut(ApiServerRequestContext requestContext) throws JsonParseException, JsonMappingException, IOException, RequestValidationException {
@@ -182,6 +193,11 @@ public class ApiServerRequestHandler implements RequestHandler{
 
 		if(requestContext.resourceName().isPresent()) {
 			Resource resource = validateRequestBody(requestContext);
+			
+			Resource dbResult = resourcesRepository.getResource(resourceKey(requestContext));
+			if (dbResult != null) {
+				throw new RequestValidationException("Resource already exists");
+			}
 			
 			resource.getMetadata().setSelfLink(requestContext.httpContext().request().path());
 			resource.getMetadata().setUid(UUID.randomUUID().toString());
@@ -254,9 +270,8 @@ public class ApiServerRequestHandler implements RequestHandler{
 	}
 
 	protected void handleGet(ApiServerRequestContext requestContext) throws JsonProcessingException {
-		DefinitionResourceSpec definition = requestContext.definition();
 		if(requestContext.resourceName().isPresent()) {
-			Resource resource = resourcesRepository.getResource(new ResourceKey(ApiServerUtils.formatApiVersion(definition.getGroup(), definition.getVersion()), definition.getNames().getKind(), requestContext.resourceType(), requestContext.resourceName().get()));
+			Resource resource = resourcesRepository.getResource(resourceKey(requestContext));
 			if(resource == null) {
 				requestContext.httpContext().response()
 					.setStatusCode(HttpResponseStatus.NOT_FOUND.code())
@@ -265,12 +280,17 @@ public class ApiServerRequestHandler implements RequestHandler{
 				sendResponse(requestContext, resource);
 			}
 		}else {
-			List<Resource> resources = list(requestContext, definition);
+			List<Resource> resources = list(requestContext);
 			sendResponse(requestContext, resources);
 		}
 	}
 
-	private List<Resource> list(ApiServerRequestContext requestContext, DefinitionResourceSpec definition) {
+	private ResourceKey resourceKey(ApiServerRequestContext requestContext) {
+		return new ResourceKey(ApiServerUtils.formatApiVersion(requestContext.definition().getGroup(), requestContext.definition().getVersion()), requestContext.definition().getNames().getKind(), requestContext.resourceType(), requestContext.resourceName().get());
+	}
+
+	private List<Resource> list(ApiServerRequestContext requestContext) {
+		DefinitionResourceSpec definition = requestContext.definition();
 		if (requestContext.resourceType().scope() == ResourceScope.Global) {
 			return resourcesRepository.doGlobalQuery(ApiServerUtils.formatApiVersion(definition.getGroup(), definition.getVersion()), definition.getNames().getKind());
 		} else {

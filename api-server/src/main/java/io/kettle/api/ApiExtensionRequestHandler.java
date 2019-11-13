@@ -2,7 +2,6 @@ package io.kettle.api;
 
 import io.kettle.api.resource.Resource;
 import io.kettle.api.resource.extension.DefinitionResourceSpec;
-import io.kettle.api.storage.DefinitionResourceRepository;
 import io.kettle.api.storage.ResourcesRepository;
 import io.vertx.core.json.JsonObject;
 
@@ -12,9 +11,8 @@ public class ApiExtensionRequestHandler extends ApiServerRequestHandler {
 	private ApiServerRequestHandlerFactory defaultRequestHandlerFactory;
 
 	public ApiExtensionRequestHandler(ApiResourcesService apiResourcesService,
-			ApiServerRequestHandlerFactory defaultRequestHandlerFactory,
-			DefinitionResourceRepository definitionsRepository, ResourcesRepository resourcesRepository) {
-		super(definitionsRepository, resourcesRepository);
+			ApiServerRequestHandlerFactory defaultRequestHandlerFactory, ResourcesRepository resourcesRepository) {
+		super(resourcesRepository);
 		this.apiResourcesService = apiResourcesService;
 		this.defaultRequestHandlerFactory = defaultRequestHandlerFactory;
 	}
@@ -24,8 +22,6 @@ public class ApiExtensionRequestHandler extends ApiServerRequestHandler {
 		super.create(requestContext, resource);
 		DefinitionResourceSpec resourceSpec = new JsonObject(resource.getSpec()).mapTo(DefinitionResourceSpec.class);
 		apiResourcesService.registerResourceRoute(resourceSpec, defaultRequestHandlerFactory);
-		//TODO remove definitionsRepository, is not needed
-		definitionsRepository.saveDefinitionResource(resourceSpec);
 	}
 
 	@Override

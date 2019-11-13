@@ -14,14 +14,12 @@ public class ResourceType implements Serializable{
 	private ResourceScope scope;
 	private String namespace;
 	
-	public ResourceType(ResourceScope scope) {
-		this.scope = scope;
+	public static ResourceType global() {
+		return new ResourceType(ResourceScope.Global, null);
 	}
 	
-	public ResourceType(String namespace) {
-		this.scope = ResourceScope.Namespaced;
-		this.namespace = namespace;
-		
+	public static ResourceType namespaced(String namespace) {
+		return new ResourceType(ResourceScope.Namespaced, namespace);
 	}
 	
 	public ResourceType(ResourceScope scope, String namespace) {

@@ -21,12 +21,10 @@ public class ApiServer {
 		this.apiResourcesManager = apiResourcesManager;
 	}
 	
-	//docker run -it -p 11222:11222 jboss/infinispan-server:latest
-	
     public void init(@Observes StartupEvent ev) {
     	log.info("Initializing api-server");   
 		apiResourcesManager.registerCoreResources();
-		apiResourcesManager.loadResourcesDefinitions();
+		// apiResourcesManager.loadResourcesDefinitions();
 	}
 
 	

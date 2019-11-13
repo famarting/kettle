@@ -2,6 +2,7 @@ package io.kettle.api.resource;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 public class ResourceMetadata implements Serializable{
 
@@ -15,8 +16,8 @@ public class ResourceMetadata implements Serializable{
 	private String namespace;
 	private String selfLink;
 	private String creationTimestamp;
-	private List<MetadataProperty> labels;
-	private List<MetadataProperty> annotations;
+	private Map<String, String> labels;
+	private Map<String, String> annotations;
 	
 	public String getUid() {
 		return uid;
@@ -48,16 +49,16 @@ public class ResourceMetadata implements Serializable{
 	public void setCreationTimestamp(String creationTimestamp) {
 		this.creationTimestamp = creationTimestamp;
 	}
-	public List<MetadataProperty> getLabels() {
+	public Map<String, String> getLabels() {
 		return labels;
 	}
-	public void setLabels(List<MetadataProperty> labels) {
+	public void setLabels(Map<String, String> labels) {
 		this.labels = labels;
 	}
-	public List<MetadataProperty> getAnnotations() {
+	public Map<String, String> getAnnotations() {
 		return annotations;
 	}
-	public void setAnnotations(List<MetadataProperty> annotations) {
+	public void setAnnotations(Map<String, String> annotations) {
 		this.annotations = annotations;
 	}
 	

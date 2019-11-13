@@ -2,65 +2,24 @@ package io.kettle.api.storage;
 
 import java.util.List;
 
-import org.infinispan.client.hotrod.Flag;
-import org.infinispan.client.hotrod.RemoteCache;
-import org.infinispan.client.hotrod.Search;
-import org.infinispan.query.dsl.QueryFactory;
-
-import io.kettle.api.ApiServerUtils;
 import io.kettle.api.resource.Resource;
 import io.kettle.api.resource.ResourceKey;
-import io.kettle.api.resource.extension.DefinitionResourceSpec;
 import io.kettle.api.resource.type.ResourceType;
 
-public class ResourcesRepository {
+public interface ResourcesRepository {
 
-	private RemoteCache<ResourceKey, Resource> cache;
+	public Resource deleteResource(ResourceKey key);
+	
+	public void createResource(ResourceType resourceType, Resource resource);
+	
+	public void updateResource(ResourceType resourceType, Resource resource);
+	
+	public Resource getResource(ResourceKey key);
 
-	private QueryFactory queryFactory;
+	public List<Resource> doNamespacedQuery(String apiVersion, String kind, String namespace);
 	
-	public ResourcesRepository(RemoteCache<ResourceKey, Resource> cache) {
-		this.cache = cache;
-		this.queryFactory = Search.getQueryFactory(this.cache);
+	public List<Resource> doGlobalQuery(String apiVersion, String kind);
 
-	}
-	
-	public Resource deleteResource(ResourceType resourceType, DefinitionResourceSpec definition, String resourceName) {
-		return this.cache.withFlags(Flag.FORCE_RETURN_VALUE)
-				.remove(new ResourceKey(ApiServerUtils.formatApiVersion(definition.getGroup(), definition.getVersion()), definition.getNames().getKind(), resourceType, resourceName));
-	}
-	
-	public void createResource(ResourceType resourceType, Resource resource) {
-		this.cache.put(new ResourceKey(resource.getApiVersion(), resource.getKind(), resourceType, resource.getMetadata().getName()), resource);
-	}
-	
-	public void updateResource(ResourceType resourceType, Resource resource) {
-		//FIXME improve this
-		this.cache.put(new ResourceKey(resource.getApiVersion(), resource.getKind(), resourceType, resource.getMetadata().getName()), resource);
-	}
-	
-	public Resource getResource(ResourceKey key) {
-		return this.cache.get(key);
-	}
-
-	public List<Resource> doNamespacedQuery(String apiVersion, String kind, String namespace) {
-		return queryFactory.from(Resource.class)
-				.having("apiVersion").equal(apiVersion)
-				.and()
-				.having("kind").equal(kind)
-				.and()
-				.having("metadata.namespace").equal(namespace)
-				.build()
-				.list();
-	}
-	
-	public List<Resource> doGlobalQuery(String apiVersion, String kind) {
-		return queryFactory.from(Resource.class)
-				.having("apiVersion").equal(apiVersion)
-				.and()
-				.having("kind").equal(kind)
-				.build()
-				.list();
-	}
+	//get by plural name
 	
 }

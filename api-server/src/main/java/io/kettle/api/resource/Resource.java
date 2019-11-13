@@ -3,16 +3,24 @@ package io.kettle.api.resource;
 import java.io.Serializable;
 import java.util.Map;
 
+import org.bson.types.ObjectId;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
+import io.quarkus.mongodb.panache.MongoEntity;
+
 @JsonInclude(Include.NON_NULL)
-public class Resource implements Serializable{
+public class Resource implements Serializable {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 6569454416678033811L;
+	
+	@JsonIgnore
+    private ObjectId id;
 	
 	private String apiVersion;
 	private String kind;
@@ -20,6 +28,12 @@ public class Resource implements Serializable{
 	private Map<String, Object> spec;
 	private Map<String, Object> status;
 	
+	public ObjectId getId() {
+		return id;
+	}
+	public void setId(ObjectId id) {
+		this.id = id;
+	}
 	public String getApiVersion() {
 		return apiVersion;
 	}

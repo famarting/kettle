@@ -23,4 +23,9 @@ public class ResourceKey implements Serializable{
 		this.name = name;
 	}
 
+	@Override
+	public String toString() {
+		return "ResourceKey [apiVersion=" + apiVersion + ", kind=" + kind + ", type=" + type + ", name=" + name + "]";
+	}
+
 }
