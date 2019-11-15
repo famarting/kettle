@@ -1,4 +1,4 @@
-name: run-integration-tests
+name: run-tests
 
 on: 
   pull_request:
@@ -17,9 +17,5 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 1.8
-    - name: run mongo
-      run: make run-mongo-background
-    - name: run api-server
-      run: make run-api-server
-    - name: run integration-tests
-      run: make run-integration-tests
+    - name: run tests
+      run: make run-tests

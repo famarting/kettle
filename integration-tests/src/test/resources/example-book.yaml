@@ -1,8 +1,0 @@
-apiVersion: library.io/v1alpha11
-kind: Book
-metadata:
-  name: harry-potter
-spec:
-  author: J. K. Rowling
-  name: Harry Potter
-  releases: 6
