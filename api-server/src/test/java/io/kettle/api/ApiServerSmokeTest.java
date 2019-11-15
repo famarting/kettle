@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -163,7 +164,7 @@ public class ApiServerSmokeTest {
 	private JsonObject createBookResource(String namespaceName, String book1Name)
 			throws InterruptedException, ExecutionException, TimeoutException {
 		JsonObject book1 = createResource("library.io/v1alpha1", "Book", book1Name);
-		book1.put("spec", new JsonObject(Map.of("text", UUID.randomUUID().toString())));
+		book1.put("spec", new JsonObject(Collections.singletonMap("text", UUID.randomUUID().toString())));
 		CompletableFuture<JsonObject> book1Future = new CompletableFuture<>();
 		client.post(port, host, "/apis/library.io/v1alpha1/namespaces/"+namespaceName+"/books/"+book1Name)
 			.as(BodyCodec.jsonObject())
@@ -230,7 +231,12 @@ public class ApiServerSmokeTest {
 		spec.put("group", "library.io");
 		spec.put("version", "v1alpha1");
 		spec.put("scope", "Namespaced");
-		spec.put("names", new JsonObject(Map.of("kind", "Book", "listKind", "Books", "plural", "books", "singular", "book")));
+		JsonObject names = new JsonObject();
+		names.put("kind", "Book");
+		names.put("listKind", "Books");
+		names.put("plural", "books");
+		names.put("singular", "book");
+		spec.put("names", names);
 		bookDefinition.put("spec", spec);
 		
 		CompletableFuture<JsonObject> definitionFuture = new CompletableFuture<>();
@@ -245,7 +251,7 @@ public class ApiServerSmokeTest {
 		JsonObject resource = new JsonObject();
 		resource.put("apiVersion", apiVersion);
 		resource.put("kind", kind);
-		resource.put("metadata", new JsonObject(Map.of("name", name)));
+		resource.put("metadata", new JsonObject(Collections.singletonMap("name", name)));
 		return resource;
 	}
 	
