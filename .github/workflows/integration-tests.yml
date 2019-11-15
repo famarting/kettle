@@ -1,6 +1,10 @@
 name: run-integration-tests
 
-on: [push,pull_request]
+on: 
+  pull_request:
+    branches-ignore: master
+  push:
+    branches: master
 
 jobs:
   integration-tests:
