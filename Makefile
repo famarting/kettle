@@ -15,5 +15,5 @@ native-api-server:
 run-native-api-server:
 	$(MAKE) -C api-server run-native
 
-.PHONY: run-integration-tests run-mongo run-mongo-background 
+.PHONY: run-mongo run-mongo-background
 

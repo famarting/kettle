@@ -1,6 +1,6 @@
 
 deploy:
-	mvn package
+	mvn package -DskipTests
 	java -jar target/api-server-1.0-SNAPSHOT-runner.jar
 
 dev:

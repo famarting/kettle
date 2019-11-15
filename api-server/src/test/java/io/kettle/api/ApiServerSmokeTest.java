@@ -54,7 +54,7 @@ public class ApiServerSmokeTest {
     public static void startMongoDatabase() throws IOException {
         Version.Main version = Version.Main.V4_0;
         int port = 27017;
-        log.info("Starting Mongo %s on port %s", version, port);
+        log.info("Starting Mongo {} on port {}", version, port);
         IMongodConfig config = new MongodConfigBuilder()
                 .version(version)
                 .net(new Net(port, Network.localhostIsIPv6()))
