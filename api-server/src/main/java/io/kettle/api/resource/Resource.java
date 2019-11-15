@@ -5,13 +5,14 @@ import java.util.Map;
 
 import org.bson.types.ObjectId;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
-import io.quarkus.mongodb.panache.MongoEntity;
-
 @JsonInclude(Include.NON_NULL)
+@RegisterForReflection
 public class Resource implements Serializable {
 
 	/**

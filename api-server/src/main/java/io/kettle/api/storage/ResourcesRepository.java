@@ -4,16 +4,21 @@ import java.util.List;
 
 import io.kettle.api.resource.Resource;
 import io.kettle.api.resource.ResourceKey;
+import io.kettle.api.resource.extension.DefinitionResourceSpec;
 import io.kettle.api.resource.type.ResourceType;
 
 public interface ResourcesRepository {
 
-	public Resource deleteResource(ResourceKey key);
+	public void cacheCoreResource(DefinitionResourceSpec definition);
+
+	public DefinitionResourceSpec getDefinitionResource(String name);
 	
 	public void createResource(ResourceType resourceType, Resource resource);
 	
 	public void updateResource(ResourceType resourceType, Resource resource);
 	
+	public Resource deleteResource(ResourceKey key);
+
 	public Resource getResource(ResourceKey key);
 
 	public List<Resource> doNamespacedQuery(String apiVersion, String kind, String namespace);

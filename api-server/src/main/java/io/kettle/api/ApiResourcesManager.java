@@ -1,25 +1,15 @@
 package io.kettle.api;
 
-import java.io.IOException;
-import java.util.Map;
-
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kettle.api.resource.Resource;
-import io.kettle.api.resource.ResourceMetadata;
 import io.kettle.api.resource.extension.DefinitionResourceSpec;
 import io.kettle.api.resource.extension.ResourceNames;
 import io.kettle.api.resource.extension.ResourceScope;
-import io.kettle.api.resource.type.ResourceType;
 import io.kettle.api.storage.ResourcesRepository;
-import io.vertx.core.json.JsonObject;
 
 @Singleton
 public class ApiResourcesManager {
@@ -52,13 +42,15 @@ public class ApiResourcesManager {
 		registerExtensionResource();
 	}
 
-	// public void loadResourcesDefinitions() {
-	// definitionsRepository.getAllDefinitions().forEach(definition->{
-	// log.info("Creating route for existing resource definition {}", definition);
-	// apiResourcesService.registerResourceRoute(definition,
-	// defaultRequestHandlerFactory);
-	// });
-	// }
+	public void loadResourcesDefinitions() {
+		resourcesRepository.doGlobalQuery(
+			ApiServerUtils.formatApiVersion(ApiResourcesManager.CORE_API_GROUP, ApiResourcesManager.CORE_API_VERSION), 
+			ApiResourcesManager.DEFINITION_RESOURCE_KIND).forEach(resource->{
+				DefinitionResourceSpec definition = new DefinitionResourceSpec(resource.getSpec());
+				log.info("Creating route for existing resource definition {}", definition);
+				apiResourcesService.registerResourceRoute(definition, defaultRequestHandlerFactory);
+		});
+	}
 
 	private void registerNamespaceResource() {
 		DefinitionResourceSpec spec = new DefinitionResourceSpec();
@@ -72,7 +64,7 @@ public class ApiResourcesManager {
 		names.setSingular("namespace");
 		spec.setNames(names);
 		apiResourcesService.registerResourceRoute(spec, defaultRequestHandlerFactory);
-		storeResource(spec);
+		resourcesRepository.cacheCoreResource(spec);
 	}
 
 	private void registerExtensionResource() {
@@ -87,26 +79,7 @@ public class ApiResourcesManager {
 		names.setSingular("resourcedefinition");
 		spec.setNames(names);
 		apiResourcesService.registerResourceRoute(spec, apiExtensionRequestHandlerFactory);
-		storeResource(spec);
+		resourcesRepository.cacheCoreResource(spec);
 	}
 
-	private void storeResource(DefinitionResourceSpec spec) {
-		Resource resource = new Resource();
-		resource.setApiVersion(ApiServerUtils.formatApiVersion(CORE_API_GROUP, CORE_API_VERSION));
-		resource.setKind(DEFINITION_RESOURCE_KIND);
-		ResourceMetadata metadata = new ResourceMetadata();
-		metadata.setName(spec.getNames().getPlural());
-		resource.setMetadata(metadata);
-		ObjectMapper mapper = new ObjectMapper();
-		try {
-			resource.setSpec(
-					mapper.readValue(mapper.writeValueAsString(spec), new TypeReference<Map<String, Object>>() {
-					}));
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new IllegalStateException(e);
-		}
-		resourcesRepository.createResource(ResourceType.global(), resource);
-	}
-	
 }

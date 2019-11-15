@@ -38,7 +38,7 @@ public class ApiServerSmokeTest {
 	@Test
 	void testApiServer() throws InterruptedException, ExecutionException, TimeoutException {
 
-		int minDefintions = 2;
+		int minDefintions = 0;
 		
 		JsonArray definitions = listDefinitions();
 		log.info(definitions.encodePrettily());
@@ -180,7 +180,7 @@ public class ApiServerSmokeTest {
 	}
 	
 	private void deleteBookDefinition() throws InterruptedException, ExecutionException, TimeoutException {
-		String bookDefinitionName = "books";
+		String bookDefinitionName = "book-definition";
 		CompletableFuture<JsonObject> deleteBookFuture = new CompletableFuture<>();
 		client.delete(port, host, "/apis/core/v1beta1/resourcesdefinitions/"+bookDefinitionName)
 			.as(BodyCodec.jsonObject())
@@ -190,7 +190,7 @@ public class ApiServerSmokeTest {
 	}
 	
 	private void createBookDefinition() throws InterruptedException, ExecutionException, TimeoutException {
-		String bookDefinitionName = "books";
+		String bookDefinitionName = "book-definition";
 		JsonObject bookDefinition = createResource("core/v1beta1", "ResourceDefinition", bookDefinitionName);
 		JsonObject spec = new JsonObject();
 		spec.put("group", "library.io");

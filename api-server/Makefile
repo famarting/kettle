@@ -9,4 +9,10 @@ dev:
 debug:
 	mvn compile quarkus:dev -Dsuspend
 
+native:
+	mvn package -Pnative -Dquarkus.native.container-build=true
+
+run-native:
+	./target/api-server-1.0-SNAPSHOT-runner
+
 .PHONY: deploy

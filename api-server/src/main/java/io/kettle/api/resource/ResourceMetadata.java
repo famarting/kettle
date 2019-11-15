@@ -1,9 +1,11 @@
 package io.kettle.api.resource;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.Map;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
+@RegisterForReflection
 public class ResourceMetadata implements Serializable{
 
 	/**

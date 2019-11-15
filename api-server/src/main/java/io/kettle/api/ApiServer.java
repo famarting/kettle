@@ -24,7 +24,7 @@ public class ApiServer {
     public void init(@Observes StartupEvent ev) {
     	log.info("Initializing api-server");   
 		apiResourcesManager.registerCoreResources();
-		// apiResourcesManager.loadResourcesDefinitions();
+		apiResourcesManager.loadResourcesDefinitions();
 	}
 
 	

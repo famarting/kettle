@@ -3,7 +3,6 @@ package io.kettle.api;
 import io.kettle.api.resource.Resource;
 import io.kettle.api.resource.extension.DefinitionResourceSpec;
 import io.kettle.api.storage.ResourcesRepository;
-import io.vertx.core.json.JsonObject;
 
 public class ApiExtensionRequestHandler extends ApiServerRequestHandler {
 
@@ -20,14 +19,14 @@ public class ApiExtensionRequestHandler extends ApiServerRequestHandler {
 	@Override
 	protected void create(ApiServerRequestContext requestContext, Resource resource) {
 		super.create(requestContext, resource);
-		DefinitionResourceSpec resourceSpec = new JsonObject(resource.getSpec()).mapTo(DefinitionResourceSpec.class);
+		DefinitionResourceSpec resourceSpec = new DefinitionResourceSpec(resource.getSpec());
 		apiResourcesService.registerResourceRoute(resourceSpec, defaultRequestHandlerFactory);
 	}
 
 	@Override
 	protected Resource delete(ApiServerRequestContext requestContext) {
 		Resource resource = super.delete(requestContext);
-		DefinitionResourceSpec resourceSpec = new JsonObject(resource.getSpec()).mapTo(DefinitionResourceSpec.class);
+		DefinitionResourceSpec resourceSpec = new DefinitionResourceSpec(resource.getSpec());
 		apiResourcesService.removeResourceRoute(resourceSpec);
 		return resource;
 	}

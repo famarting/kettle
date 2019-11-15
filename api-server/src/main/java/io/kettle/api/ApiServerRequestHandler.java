@@ -32,7 +32,6 @@ import io.kettle.api.storage.ResourcesRepository;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
 public class ApiServerRequestHandler implements RequestHandler{
@@ -127,22 +126,14 @@ public class ApiServerRequestHandler implements RequestHandler{
 			name = Optional.of(pathItems[4]);
 		}
 		
-		//by convention definition resources name is the pluralName
-		Resource definitionResource = resourcesRepository.getResource(
-			new ResourceKey(
-				ApiServerUtils.formatApiVersion(ApiResourcesManager.CORE_API_GROUP, ApiResourcesManager.CORE_API_VERSION),
-				ApiResourcesManager.DEFINITION_RESOURCE_KIND,
-				ResourceType.global(),
-				pluralName));
-		
-		if(definitionResource == null) {
+		DefinitionResourceSpec definition = resourcesRepository.getDefinitionResource(pluralName);
+		if(definition == null) {
 			throw new RequestValidationException("Resource type not found");
 		}
 
-		DefinitionResourceSpec definition = new JsonObject(definitionResource.getSpec()).mapTo(DefinitionResourceSpec.class);
-
 		if (group.equals(definition.getGroup()) && version.equals(definition.getVersion()) && type.scope() == definition.getScope()) {
-			return new ApiServerRequestContext(definition, ctx, type, name);
+			return new ApiServerRequestContext(definition.getGroup(), definition.getVersion(), definition.getNames().getKind(),
+				ctx, type, name);
 		} else {
 			throw new RequestValidationException("Api not found");
 		}
@@ -216,10 +207,10 @@ public class ApiServerRequestHandler implements RequestHandler{
 	private Resource validateRequestBody(ApiServerRequestContext requestContext) throws IOException, JsonParseException, JsonMappingException, RequestValidationException {
 		Buffer body = requestContext.httpContext().getBody();
 		Resource resource = getRequestObjectMapper(requestContext).readValue(body.getBytes(), Resource.class);
-		if(!ApiServerUtils.formatApiVersion(requestContext.definition().getGroup(), requestContext.definition().getVersion()).equals(resource.getApiVersion())) {
+		if(!ApiServerUtils.formatApiVersion(requestContext.group(), requestContext.version()).equals(resource.getApiVersion())) {
 			throw new RequestValidationException("apiVersion doesn't match");
 		}
-		if(!requestContext.definition().getNames().getKind().equals(resource.getKind())) {
+		if(!requestContext.kind().equals(resource.getKind())) {
 			throw new RequestValidationException("Kind doesn't match");
 		}
 		if(resource.getMetadata() == null) {
@@ -286,15 +277,14 @@ public class ApiServerRequestHandler implements RequestHandler{
 	}
 
 	private ResourceKey resourceKey(ApiServerRequestContext requestContext) {
-		return new ResourceKey(ApiServerUtils.formatApiVersion(requestContext.definition().getGroup(), requestContext.definition().getVersion()), requestContext.definition().getNames().getKind(), requestContext.resourceType(), requestContext.resourceName().get());
+		return new ResourceKey(ApiServerUtils.formatApiVersion(requestContext.group(), requestContext.version()), requestContext.kind(), requestContext.resourceType(), requestContext.resourceName().get());
 	}
 
 	private List<Resource> list(ApiServerRequestContext requestContext) {
-		DefinitionResourceSpec definition = requestContext.definition();
 		if (requestContext.resourceType().scope() == ResourceScope.Global) {
-			return resourcesRepository.doGlobalQuery(ApiServerUtils.formatApiVersion(definition.getGroup(), definition.getVersion()), definition.getNames().getKind());
+			return resourcesRepository.doGlobalQuery(ApiServerUtils.formatApiVersion(requestContext.group(), requestContext.version()), requestContext.kind());
 		} else {
-			return resourcesRepository.doNamespacedQuery(ApiServerUtils.formatApiVersion(definition.getGroup(), definition.getVersion()), definition.getNames().getKind(), requestContext.resourceType().namespace());
+			return resourcesRepository.doNamespacedQuery(ApiServerUtils.formatApiVersion(requestContext.group(), requestContext.version()), requestContext.kind(), requestContext.resourceType().namespace());
 		}
 	}
 	
@@ -305,6 +295,5 @@ public class ApiServerRequestHandler implements RequestHandler{
 			return jsonMapper;
 		}
 	}
-	
 	
 }

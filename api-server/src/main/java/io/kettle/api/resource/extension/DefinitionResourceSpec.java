@@ -1,6 +1,7 @@
 package io.kettle.api.resource.extension;
 
 import java.io.Serializable;
+import java.util.Map;
 
 public class DefinitionResourceSpec implements Serializable{
 
@@ -14,6 +15,23 @@ public class DefinitionResourceSpec implements Serializable{
 	private ResourceScope scope;
 	private ResourceNames names;
 	
+	public DefinitionResourceSpec() {
+		//empty
+	}
+
+	public DefinitionResourceSpec(Map<String, Object> spec) {
+		this.group = (String) spec.get("group");
+		this.version = (String) spec.get("version");
+		this.scope = ResourceScope.valueOf((String) spec.get("scope"));
+		Map<String, String> names = (Map<String, String>) spec.get("names");
+		ResourceNames resourceNames = new ResourceNames();
+		resourceNames.setKind(names.get("kind"));
+		resourceNames.setListKind(names.get("listKind"));
+		resourceNames.setPlural(names.get("plural"));
+		resourceNames.setSingular(names.get("singular"));
+		this.names = resourceNames;
+	}
+
 	public String getGroup() {
 		return group;
 	}

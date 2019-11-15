@@ -8,7 +8,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.enterprise.event.Observes;
-import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import org.slf4j.Logger;

@@ -1,21 +1,20 @@
 package io.kettle.api.storage.mongo;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.kettle.api.ApiServerRequestContext;
+import io.kettle.api.ApiResourcesManager;
 import io.kettle.api.ApiServerUtils;
 import io.kettle.api.resource.Resource;
 import io.kettle.api.resource.ResourceKey;
+import io.kettle.api.resource.extension.DefinitionResourceSpec;
 import io.kettle.api.resource.extension.ResourceScope;
 import io.kettle.api.resource.type.ResourceType;
 import io.kettle.api.storage.ResourcesRepository;
-import io.quarkus.mongodb.panache.PanacheQuery;
 import io.quarkus.panache.common.Parameters;
 
 /**
@@ -24,10 +23,10 @@ import io.quarkus.panache.common.Parameters;
 @ApplicationScoped
 public class ResourcesRepositoryImpl implements ResourcesRepository {
 
-	private Logger log = LoggerFactory.getLogger(this.getClass());
-	
     @Inject
     MongoResourcesRepository repository;
+
+    private Map<String, DefinitionResourceSpec> coreResourcesCache = new HashMap<>();
 
     @Override
     public Resource deleteResource(ResourceKey key) {
@@ -76,5 +75,25 @@ public class ResourcesRepositoryImpl implements ResourcesRepository {
         return repository.find(query, parameters).list();
     }
 
+    @Override
+    public DefinitionResourceSpec getDefinitionResource(String pluralName) {
+        DefinitionResourceSpec definition = coreResourcesCache.get(pluralName);
+        if (definition == null) {
+            Parameters parameters = Parameters.with("apiVersion", ApiServerUtils.formatApiVersion(ApiResourcesManager.CORE_API_GROUP, ApiResourcesManager.CORE_API_VERSION))
+                .and("kind", ApiResourcesManager.DEFINITION_RESOURCE_KIND)
+                .and("pluralName", pluralName);
+            String query = "apiVersion = :apiVersion and kind = :kind and spec.names.plural = :pluralName";
+            Resource resource = repository.find(query, parameters).firstResult();
+            if (resource!=null) {
+                definition = new DefinitionResourceSpec(resource.getSpec());
+            }
+        }
+        return definition;
+    }
+
+    @Override
+    public void cacheCoreResource(DefinitionResourceSpec definition) {
+        coreResourcesCache.put(definition.getNames().getPlural(), definition);
+    }
     
 }

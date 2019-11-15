@@ -11,5 +11,4 @@ import io.quarkus.mongodb.panache.PanacheMongoRepository;
 @ApplicationScoped
 public class MongoResourcesRepository implements PanacheMongoRepository<Resource>{
 
-    
 }

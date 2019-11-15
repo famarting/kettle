@@ -2,28 +2,39 @@ package io.kettle.api;
 
 import java.util.Optional;
 
-import io.kettle.api.resource.extension.DefinitionResourceSpec;
 import io.kettle.api.resource.type.ResourceType;
 import io.vertx.ext.web.RoutingContext;
 
 public class ApiServerRequestContext {
 
-	private DefinitionResourceSpec definition;
+	private String group;
+	private String version;
+	private String kind;
 	private RoutingContext httpContext;
 	private ResourceType resourceType;
 	private Optional<String> resourceName;
 	
-	public ApiServerRequestContext(DefinitionResourceSpec definition, RoutingContext httpContext, ResourceType resourceType, Optional<String> resourceName) {
-		this.definition = definition;
+	public ApiServerRequestContext(String group, String version, String kind, RoutingContext httpContext, ResourceType resourceType, Optional<String> resourceName) {
+		this.group = group;
+		this.version = version;
+		this.kind = kind;
 		this.httpContext = httpContext;
 		this.resourceType = resourceType;
 		this.resourceName = resourceName;
 	}
 
-	public DefinitionResourceSpec definition() {
-		return definition;
+	public String group() {
+		return group;
 	}
 	
+	public String version() {
+		return version;
+	}
+
+	public String kind() {
+		return kind;
+	}
+
 	public RoutingContext httpContext() {
 		return httpContext;
 	}

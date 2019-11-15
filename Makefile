@@ -18,6 +18,13 @@ run-api-server:
 run-integration-tests:
 	$(MAKE) -C integration-tests test
 
+native-api-server:
+	$(MAKE) -C api-server native
+
+run-native-api-server:
+	$(MAKE) -C api-server run-native
+
+
 $(DOCKER_TARGETS): $(PROJECTS)
 $(PROJECTS):
 	$(MAKE) -C $@ $(MAKECMDGOALS)
