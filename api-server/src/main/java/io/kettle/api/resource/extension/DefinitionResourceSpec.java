@@ -3,6 +3,8 @@ package io.kettle.api.resource.extension;
 import java.io.Serializable;
 import java.util.Map;
 
+import io.vertx.core.json.JsonObject;
+
 public class DefinitionResourceSpec implements Serializable{
 
 	/**
@@ -20,15 +22,16 @@ public class DefinitionResourceSpec implements Serializable{
 	}
 
 	public DefinitionResourceSpec(Map<String, Object> spec) {
-		this.group = (String) spec.get("group");
-		this.version = (String) spec.get("version");
-		this.scope = ResourceScope.valueOf((String) spec.get("scope"));
-		Map<String, String> names = (Map<String, String>) spec.get("names");
+		JsonObject json = new JsonObject(spec);
+		this.group = json.getString("group");
+		this.version = json.getString("version");
+		this.scope = ResourceScope.valueOf(json.getString("scope"));
+		JsonObject names = json.getJsonObject("names");
 		ResourceNames resourceNames = new ResourceNames();
-		resourceNames.setKind(names.get("kind"));
-		resourceNames.setListKind(names.get("listKind"));
-		resourceNames.setPlural(names.get("plural"));
-		resourceNames.setSingular(names.get("singular"));
+		resourceNames.setKind(names.getString("kind"));
+		resourceNames.setListKind(names.getString("listKind"));
+		resourceNames.setPlural(names.getString("plural"));
+		resourceNames.setSingular(names.getString("singular"));
 		this.names = resourceNames;
 	}
 
