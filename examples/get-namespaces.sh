@@ -1,0 +1,1 @@
+http :7658/apis/core/v1beta1/namespaces/

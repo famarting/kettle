@@ -1,7 +1,11 @@
 package io.kettle.api;
 
+import java.util.HashMap;
+import java.util.Optional;
+
 import io.kettle.api.resource.Resource;
 import io.kettle.api.resource.extension.DefinitionResourceSpec;
+import io.kettle.api.resource.extension.ResourceScope;
 import io.kettle.api.storage.ResourcesRepository;
 
 public class ApiExtensionRequestHandler extends ApiServerRequestHandler {
@@ -18,9 +22,17 @@ public class ApiExtensionRequestHandler extends ApiServerRequestHandler {
 
 	@Override
 	protected void create(ApiServerRequestContext requestContext, Resource resource) {
+		DefinitionResourceSpec definition = new DefinitionResourceSpec(resource.getSpec());
+		String link;
+		if(definition.getScope() == ResourceScope.Global) {
+			link = String.format("/apis/%s/%s/%s/", definition.getGroup(), definition.getVersion(), definition.getNames().getPlural());
+		}else {
+			link = String.format("/apis/%s/%s/namespaces/:namespace/%s/", definition.getGroup(), definition.getVersion(), definition.getNames().getPlural());
+		}
+		resource.setStatus(Optional.ofNullable(resource.getStatus()).orElseGet(HashMap::new));
+		resource.getStatus().put("link", link);
 		super.create(requestContext, resource);
-		DefinitionResourceSpec resourceSpec = new DefinitionResourceSpec(resource.getSpec());
-		apiResourcesService.registerResourceRoute(resourceSpec, defaultRequestHandlerFactory);
+		apiResourcesService.registerResourceRoute(definition, defaultRequestHandlerFactory);
 	}
 
 	@Override

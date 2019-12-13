@@ -9,5 +9,9 @@ This is just an experiment to see if isolating the concept of an api-server make
 ## Things to do
 
 There are still lots of things to do, improve the codebase of api-server or implement a CLI utility similar to kubectl, ...
+-manage status of resources
+    -add link to resource definition status
+-CLI?
+-openapi validation
 
 [CustomResourceDefinition]: <https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#custom-resources>

@@ -1,4 +1,4 @@
-apiVersion: library.io/v1alpha11
+apiVersion: library.io/v1alpha1
 kind: Book
 metadata:
   name: harry-potter
