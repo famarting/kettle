@@ -30,5 +30,5 @@ public class GroupVersionForDiscovery {
     public void setVersion(String version) {
         this.version = version;
     }
-    
+
 }

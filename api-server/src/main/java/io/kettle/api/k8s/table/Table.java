@@ -22,15 +22,15 @@ public class Table {
 
     // @JsonCreator
     public Table(
-                 @JsonProperty("columnDefinitions") List<TableColumnDefinition> columnDefinitions,
-                 @JsonProperty("rows") List<TableRow> rows) {
+            @JsonProperty("columnDefinitions") List<TableColumnDefinition> columnDefinitions,
+            @JsonProperty("rows") List<TableRow> rows) {
         // this.metadata = metadata;
         this.columnDefinitions = columnDefinitions;
         this.rows = rows;
     }
 
     // public ListMeta getMetadata() {
-    //     return metadata;
+    // return metadata;
     // }
 
     public String getApiVersion() {
@@ -50,7 +50,7 @@ public class Table {
     }
 
     // public void setMetadata(ListMeta metadata) {
-    //     this.metadata = metadata;
+    // this.metadata = metadata;
     // }
 
     @JsonAnyGetter

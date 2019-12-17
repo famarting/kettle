@@ -64,5 +64,5 @@ public class ApiResource {
     public void setVerbs(List<String> verbs) {
         this.verbs = verbs;
     }
-    
+
 }

@@ -37,5 +37,5 @@ public class ApiGroup {
     public void setVersions(List<GroupVersionForDiscovery> versions) {
         this.versions = versions;
     }
-    
+
 }

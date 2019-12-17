@@ -48,10 +48,10 @@ public class ResourcesRepositoryImpl implements ResourcesRepository {
     @Override
     public Resource getResource(ResourceKey key) {
         Parameters parameters = Parameters.with("apiVersion", key.apiVersion)
-            .and("kind", key.kind)
-            .and("name", key.name);
+                .and("kind", key.kind)
+                .and("name", key.name);
         String query = "apiVersion = :apiVersion and kind = :kind and metadata.name = :name";
-        if (key.type.scope() == ResourceScope.Namespaced) {
+        if ( key.type.scope() == ResourceScope.Namespaced ) {
             query += " and metadata.namespace = :namespace";
             parameters.and("namespace", key.type.namespace());
         }
@@ -61,8 +61,8 @@ public class ResourcesRepositoryImpl implements ResourcesRepository {
     @Override
     public List<Resource> doNamespacedQuery(String apiVersion, String kind, String namespace) {
         Parameters parameters = Parameters.with("apiVersion", apiVersion)
-            .and("kind", kind)
-            .and("namespace", namespace);
+                .and("kind", kind)
+                .and("namespace", namespace);
         String query = "apiVersion = :apiVersion and kind = :kind and metadata.namespace = :namespace";
         return repository.find(query, parameters).list();
     }
@@ -70,7 +70,7 @@ public class ResourcesRepositoryImpl implements ResourcesRepository {
     @Override
     public List<Resource> doGlobalQuery(String apiVersion, String kind) {
         Parameters parameters = Parameters.with("apiVersion", apiVersion)
-            .and("kind", kind);
+                .and("kind", kind);
         String query = "apiVersion = :apiVersion and kind = :kind";
         return repository.find(query, parameters).list();
     }
@@ -78,13 +78,13 @@ public class ResourcesRepositoryImpl implements ResourcesRepository {
     @Override
     public DefinitionResourceSpec getDefinitionResource(String pluralName) {
         DefinitionResourceSpec definition = coreResourcesCache.get(pluralName);
-        if (definition == null) {
+        if ( definition == null ) {
             Parameters parameters = Parameters.with("apiVersion", ApiServerUtils.formatApiVersion(ApiResourcesManager.CORE_API_GROUP, ApiResourcesManager.CORE_API_VERSION))
-                .and("kind", ApiResourcesManager.DEFINITION_RESOURCE_KIND)
-                .and("pluralName", pluralName);
+                    .and("kind", ApiResourcesManager.DEFINITION_RESOURCE_KIND)
+                    .and("pluralName", pluralName);
             String query = "apiVersion = :apiVersion and kind = :kind and spec.names.plural = :pluralName";
             Resource resource = repository.find(query, parameters).firstResult();
-            if (resource!=null) {
+            if ( resource != null ) {
                 definition = new DefinitionResourceSpec(resource.getSpec());
             }
         }
@@ -95,5 +95,5 @@ public class ResourcesRepositoryImpl implements ResourcesRepository {
     public void cacheCoreResource(DefinitionResourceSpec definition) {
         coreResourcesCache.put(definition.getNames().getPlural(), definition);
     }
-    
+
 }

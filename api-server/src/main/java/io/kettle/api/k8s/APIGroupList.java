@@ -37,5 +37,5 @@ public class APIGroupList {
     public void setGroups(List<ApiGroup> groups) {
         this.groups = groups;
     }
-    
+
 }

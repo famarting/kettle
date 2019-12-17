@@ -18,7 +18,7 @@ public class TableRow {
 
     @JsonCreator
     public TableRow(@JsonProperty("cells") List<Object> cells,
-                    @JsonProperty("object") PartialObjectMetadata object) {
+            @JsonProperty("object") PartialObjectMetadata object) {
         this.cells = cells;
         this.object = object;
     }

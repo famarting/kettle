@@ -2,8 +2,7 @@ package io.kettle.api.resource;
 
 public enum ApiType {
 
-    API_SERVICE("/api"),
-    API_GROUP("/apis");
+    API_SERVICE("/api"), API_GROUP("/apis");
 
     private String basePath;
 

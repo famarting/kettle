@@ -9,22 +9,22 @@ import io.kettle.api.resource.type.ResourceType;
 
 public interface ResourcesRepository {
 
-	public void cacheCoreResource(DefinitionResourceSpec definition);
+    public void cacheCoreResource(DefinitionResourceSpec definition);
 
-	public DefinitionResourceSpec getDefinitionResource(String name);
-	
-	public void createResource(ResourceType resourceType, Resource resource);
-	
-	public void updateResource(ResourceType resourceType, Resource resource);
-	
-	public Resource deleteResource(ResourceKey key);
+    public DefinitionResourceSpec getDefinitionResource(String name);
 
-	public Resource getResource(ResourceKey key);
+    public void createResource(ResourceType resourceType, Resource resource);
 
-	public List<Resource> doNamespacedQuery(String apiVersion, String kind, String namespace);
-	
-	public List<Resource> doGlobalQuery(String apiVersion, String kind);
+    public void updateResource(ResourceType resourceType, Resource resource);
 
-	//get by plural name
-	
+    public Resource deleteResource(ResourceKey key);
+
+    public Resource getResource(ResourceKey key);
+
+    public List<Resource> doNamespacedQuery(String apiVersion, String kind, String namespace);
+
+    public List<Resource> doGlobalQuery(String apiVersion, String kind);
+
+    // get by plural name
+
 }

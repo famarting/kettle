@@ -12,20 +12,20 @@ import io.quarkus.runtime.StartupEvent;
 @Singleton
 public class ApiServer {
 
-	private Logger log = LoggerFactory.getLogger(this.getClass());
-	
-	private ApiResourcesManager apiResourcesManager;
+    private Logger log = LoggerFactory.getLogger(this.getClass());
 
-	@Inject
-	public ApiServer(ApiResourcesManager apiResourcesManager) {
-		this.apiResourcesManager = apiResourcesManager;
-	}
-	
+    private ApiResourcesManager apiResourcesManager;
+
+    @Inject
+    public ApiServer(ApiResourcesManager apiResourcesManager) {
+        this.apiResourcesManager = apiResourcesManager;
+    }
+
     public void init(@Observes StartupEvent ev) {
-    	log.info("Initializing api-server");   
-		apiResourcesManager.registerCoreResources();
-		apiResourcesManager.loadResourcesDefinitions();
-	}
+        log.info("Initializing api-server");
+        apiResourcesManager.registerCoreResources();
+        apiResourcesManager.loadResourcesDefinitions();
+    }
 
-	
+
 }

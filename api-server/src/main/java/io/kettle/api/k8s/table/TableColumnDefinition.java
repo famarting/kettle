@@ -20,10 +20,10 @@ public class TableColumnDefinition {
 
     @JsonCreator
     public TableColumnDefinition(@JsonProperty("description") String description,
-                                 @JsonProperty("format") String format,
-                                 @JsonProperty("name") String name,
-                                 @JsonProperty("priority") int priority,
-                                 @JsonProperty("type") String type) {
+            @JsonProperty("format") String format,
+            @JsonProperty("name") String name,
+            @JsonProperty("priority") int priority,
+            @JsonProperty("type") String type) {
         this.description = description;
         this.format = format;
         this.name = name;
