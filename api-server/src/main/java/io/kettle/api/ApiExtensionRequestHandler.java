@@ -32,7 +32,7 @@ public class ApiExtensionRequestHandler extends ApiServerRequestHandler {
 		resource.setStatus(Optional.ofNullable(resource.getStatus()).orElseGet(HashMap::new));
 		resource.getStatus().put("link", link);
 		super.create(requestContext, resource);
-		apiResourcesService.registerResourceRoute(definition, defaultRequestHandlerFactory);
+		apiResourcesService.registerApiGroupRoute(definition, defaultRequestHandlerFactory);
 	}
 
 	@Override

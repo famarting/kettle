@@ -46,4 +46,8 @@ public class ApiServerRequestContext {
 	public Optional<String> resourceName() {
 		return resourceName;
 	}
+
+	public void setResourceName(String name) {
+		this.resourceName = Optional.of(name);
+	}
 }

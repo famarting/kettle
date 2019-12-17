@@ -1,0 +1,8 @@
+apiVersion: library.io/v1alpha1
+kind: Book
+metadata:
+  name: test-book
+spec:
+  author: Me
+  name: cool book
+  releases: 0

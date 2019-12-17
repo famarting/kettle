@@ -6,3 +6,4 @@ spec:
   author: J. K. Rowling
   name: Harry Potter
   releases: 6
+  read: true

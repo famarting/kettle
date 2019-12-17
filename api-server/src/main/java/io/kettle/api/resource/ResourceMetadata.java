@@ -3,6 +3,10 @@ package io.kettle.api.resource;
 import java.io.Serializable;
 import java.util.Map;
 
+import org.bson.codecs.pojo.annotations.BsonDiscriminator;
+import org.bson.codecs.pojo.annotations.BsonIgnore;
+import org.bson.codecs.pojo.annotations.BsonProperty;
+
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 @RegisterForReflection
@@ -18,7 +22,9 @@ public class ResourceMetadata implements Serializable{
 	private String namespace;
 	private String selfLink;
 	private String creationTimestamp;
+	private String resourceVersion;
 	private Map<String, String> labels;
+	@BsonIgnore
 	private Map<String, String> annotations;
 	
 	public String getUid() {
@@ -63,5 +69,10 @@ public class ResourceMetadata implements Serializable{
 	public void setAnnotations(Map<String, String> annotations) {
 		this.annotations = annotations;
 	}
-	
+	public String getResourceVersion() {
+		return resourceVersion;
+	}
+	public void setResourceVersion(String resourceVersion) {
+		this.resourceVersion = resourceVersion;
+	}
 }
