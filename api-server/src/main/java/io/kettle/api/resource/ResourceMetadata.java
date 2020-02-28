@@ -3,9 +3,7 @@ package io.kettle.api.resource;
 import java.io.Serializable;
 import java.util.Map;
 
-import org.bson.codecs.pojo.annotations.BsonDiscriminator;
 import org.bson.codecs.pojo.annotations.BsonIgnore;
-import org.bson.codecs.pojo.annotations.BsonProperty;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
