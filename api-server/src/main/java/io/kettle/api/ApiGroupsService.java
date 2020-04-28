@@ -6,9 +6,9 @@ import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 
-import io.kettle.api.k8s.APIGroupList;
-import io.kettle.api.k8s.ApiGroup;
-import io.kettle.api.k8s.GroupVersionForDiscovery;
+import io.kettle.core.k8s.APIGroupList;
+import io.kettle.core.k8s.ApiGroup;
+import io.kettle.core.k8s.GroupVersionForDiscovery;
 
 /**
  * ApiGroupsService

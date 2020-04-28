@@ -2,10 +2,8 @@ package io.kettle.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.Collections;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -13,19 +11,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.flapdoodle.embed.mongo.MongodExecutable;
-import de.flapdoodle.embed.mongo.MongodStarter;
-import de.flapdoodle.embed.mongo.config.IMongodConfig;
-import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
-import de.flapdoodle.embed.mongo.config.Net;
-import de.flapdoodle.embed.mongo.distribution.Version;
-import de.flapdoodle.embed.process.runtime.Network;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Vertx;
@@ -38,6 +28,7 @@ import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
 
 @QuarkusTest
+@QuarkusTestResource(MongoTestResource.class)
 public class ApiServerSmokeTest {
 
 	static Logger log = LoggerFactory.getLogger(ApiServerSmokeTest.class);
@@ -47,28 +38,6 @@ public class ApiServerSmokeTest {
 
 	Vertx vertx = Vertx.vertx();
 	WebClient client = WebClient.create(vertx, new WebClientOptions());
-
-    private static MongodExecutable MONGO;
-
-    @BeforeAll
-    public static void startMongoDatabase() throws IOException {
-        Version.Main version = Version.Main.V4_0;
-        int port = 27017;
-        log.info("Starting Mongo {} on port {}", version, port);
-        IMongodConfig config = new MongodConfigBuilder()
-                .version(version)
-                .net(new Net(port, Network.localhostIsIPv6()))
-                .build();
-        MONGO = MongodStarter.getDefaultInstance().prepare(config);
-        MONGO.start();
-    }
-
-    @AfterAll
-    public static void stopMongoDatabase() {
-        if (MONGO != null) {
-            MONGO.stop();
-        }
-    }
 
 	@Test
 	void testApiServer() throws InterruptedException, ExecutionException, TimeoutException {

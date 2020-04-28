@@ -1,0 +1,61 @@
+package kettle;
+
+message Resource {
+  required string apiVersion = 1;
+  required string kind = 2;
+  required ResourceMetadata metadata = 3;
+  optional bytes spec = 4;
+  optional bytes status = 5;
+}
+
+message ResourceMetadata {
+  required string uid = 1;
+  required string name = 2;
+  optional string namespace = 3;
+  required string selfLink = 4;
+  required string creationTimestamp = 5;
+  repeated MetadataProperty labels = 6;
+  repeated MetadataProperty annotations = 7;
+}
+
+message MetadataProperty {
+  required string key = 1;
+  required string value = 2;
+}
+
+enum ResourceScope {
+  Global = 0;
+  Namespaced = 1;
+}
+
+message DefinitionResourceSpec {
+  required string group = 1;
+  required string version = 2;
+  required ResourceScope scope = 3;
+  required ResourceNames names = 4;
+}
+
+message ResourceNames {
+  required string kind = 1;
+  required string listKind = 2;
+  required string singular = 3;
+  required string plural = 4;
+}
+
+message DefinitionResourceKey {
+  required string group = 1;
+  required string version = 2;
+  required string kind = 3;
+}
+
+message ResourceKey {
+  required string apiVersion = 1;
+  required string kind = 2;
+  required ResourceType type = 3;
+  required string name = 4;
+}
+
+message ResourceType {
+  required ResourceScope scope = 1;
+  optional string namespace = 2;
+}

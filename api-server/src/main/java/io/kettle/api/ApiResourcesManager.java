@@ -1,34 +1,34 @@
 package io.kettle.api;
 
-import java.util.Arrays;
+import static io.kettle.core.KettleConstants.CORE_API_GROUP;
+import static io.kettle.core.KettleConstants.CORE_API_VERSION;
+import static io.kettle.core.KettleConstants.DEFINITION_RESOURCE_KIND;
+import static io.kettle.core.KettleConstants.NAMESPACE_RESOURCE_KIND;
+
+import java.util.function.BiConsumer;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.kettle.api.resource.extension.DefinitionResourceSpec;
-import io.kettle.api.resource.extension.ResourceNames;
-import io.kettle.api.resource.extension.ResourceScope;
-import io.kettle.api.storage.ResourcesRepository;
+import io.kettle.core.KettleResourceService;
+import io.kettle.core.KettleUtils;
+import io.kettle.core.resource.extension.DefinitionResourceSpec;
+import io.kettle.core.storage.ResourcesRepository;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 @Singleton
-public class ApiResourcesManager {
-
-    public static final String DEFINITION_RESOURCE_KIND = "ResourceDefinition";
-    public static final String NAMESPACE_RESOURCE_KIND = "Namespace";
-    public static final String CORE_API_GROUP = "core";
-    public static final String CORE_API_VERSION = "v1beta1";
+public class ApiResourcesManager implements KettleResourceService {
 
     private ObjectMapper jsonMapper = new ObjectMapper().setSerializationInclusion(Include.NON_EMPTY)
             .enable(SerializationFeature.INDENT_OUTPUT);
@@ -52,19 +52,16 @@ public class ApiResourcesManager {
         this.resourcesRepository = resourcesRepository;
     }
 
-    public void registerCoreResources() {
+    public void registerKubernetesCompatApis() {
         // k8s compatibility
         registerApiVersions();
         registerApiGroups();
-        // kettle core
-        registerNamespaceResource();
-        registerExtensionResource();
     }
 
     public void loadResourcesDefinitions() {
         resourcesRepository
-                .doGlobalQuery(ApiServerUtils.formatApiVersion(ApiResourcesManager.CORE_API_GROUP,
-                        ApiResourcesManager.CORE_API_VERSION), ApiResourcesManager.DEFINITION_RESOURCE_KIND)
+                .doGlobalQuery(KettleUtils.formatApiVersion(CORE_API_GROUP,
+                        CORE_API_VERSION), DEFINITION_RESOURCE_KIND)
                 .forEach(resource -> {
                     DefinitionResourceSpec definition = new DefinitionResourceSpec(resource.getSpec());
                     log.info("Creating route for existing resource definition {}", definition);
@@ -98,36 +95,22 @@ public class ApiResourcesManager {
         });
     }
 
-    private void registerNamespaceResource() {
-        DefinitionResourceSpec spec = new DefinitionResourceSpec();
-        // spec.setGroup(CORE_API_GROUP);
-        spec.setVersion("v1");
-        spec.setScope(ResourceScope.Global);
-        ResourceNames names = new ResourceNames();
-        names.setKind(NAMESPACE_RESOURCE_KIND);
-        names.setListKind("Namespaces");
-        names.setPlural("namespaces");
-        names.setSingular("namespace");
-        spec.setNames(names);
-        spec.setShortNames(Arrays.asList("ns"));
-        apiResourcesService.registerApiServiceRoute(spec, defaultRequestHandlerFactory);
-        resourcesRepository.cacheCoreResource(spec);
+    @Override
+    public void register(DefinitionResourceSpec resource) {
+        RequestHandlerFactory requestHandlerFactory = defaultRequestHandlerFactory;
+        BiConsumer<DefinitionResourceSpec, RequestHandlerFactory> registrar = apiResourcesService::registerApiGroupRoute;
+        if (resource.getNames().getKind().equals(DEFINITION_RESOURCE_KIND)) {
+            requestHandlerFactory = apiExtensionRequestHandlerFactory;
+        } else if (resource.getNames().getKind().equals(NAMESPACE_RESOURCE_KIND)) {
+            registrar = apiResourcesService::registerApiServiceRoute;
+        }
+        registrar.accept(resource, requestHandlerFactory);
     }
 
-    private void registerExtensionResource() {
-        DefinitionResourceSpec spec = new DefinitionResourceSpec();
-        spec.setGroup(CORE_API_GROUP);
-        spec.setVersion(CORE_API_VERSION);
-        spec.setScope(ResourceScope.Global);
-        ResourceNames names = new ResourceNames();
-        names.setKind(DEFINITION_RESOURCE_KIND);
-        names.setListKind("ResourcesDefinitions");
-        names.setPlural("resourcesdefinitions");
-        names.setSingular("resourcedefinition");
-        spec.setNames(names);
-        spec.setShortNames(Arrays.asList("rd", "rds", "crd"));// k8s :)
-        apiResourcesService.registerApiGroupRoute(spec, apiExtensionRequestHandlerFactory);
-        resourcesRepository.cacheCoreResource(spec);
+    @Override
+    public void afterRegister() {
+        registerKubernetesCompatApis();
+        loadResourcesDefinitions();
     }
 
 }

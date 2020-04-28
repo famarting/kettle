@@ -1,3 +1,7 @@
+build:
+	$(MAKE) -C kettle-core build
+	$(MAKE) -C api-server build
+	$(MAKE) -C kettle-ctl build
 
 run-mongo:
 #-e MONGO_INITDB_ROOT_USERNAME=admin -e MONGO_INITDB_ROOT_PASSWORD=admin
