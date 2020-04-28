@@ -1,0 +1,8 @@
+group: core
+version: v1beta1
+scope: Global
+names:
+  kind: Namespace
+  listKind: Namespaces
+  plural: namespaces
+  singular: namespace

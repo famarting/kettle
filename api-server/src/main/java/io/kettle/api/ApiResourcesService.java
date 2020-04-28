@@ -17,10 +17,10 @@ import javax.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kettle.api.k8s.ApiResource;
-import io.kettle.api.resource.extension.DefinitionResourceKey;
-import io.kettle.api.resource.extension.DefinitionResourceSpec;
-import io.kettle.api.resource.extension.ResourceScope;
+import io.kettle.core.k8s.ApiResource;
+import io.kettle.core.resource.extension.DefinitionResourceKey;
+import io.kettle.core.resource.extension.DefinitionResourceSpec;
+import io.kettle.core.resource.extension.ResourceScope;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Route;

@@ -11,6 +11,9 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -20,21 +23,20 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.kettle.api.k8s.table.PartialObjectMetadata;
-import io.kettle.api.k8s.table.Table;
-import io.kettle.api.k8s.table.TableColumnDefinition;
-import io.kettle.api.k8s.table.TableRow;
-import io.kettle.api.resource.ApiType;
-import io.kettle.api.resource.Resource;
-import io.kettle.api.resource.ResourceKey;
-import io.kettle.api.resource.ResourceMetadata;
-import io.kettle.api.resource.extension.DefinitionResourceSpec;
-import io.kettle.api.resource.extension.ResourceScope;
-import io.kettle.api.resource.type.ResourceType;
-import io.kettle.api.storage.ResourcesRepository;
+import io.kettle.core.KettleUtils;
+import io.kettle.core.RequestValidationException;
+import io.kettle.core.k8s.table.PartialObjectMetadata;
+import io.kettle.core.k8s.table.Table;
+import io.kettle.core.k8s.table.TableColumnDefinition;
+import io.kettle.core.k8s.table.TableRow;
+import io.kettle.core.resource.ApiType;
+import io.kettle.core.resource.Resource;
+import io.kettle.core.resource.ResourceKey;
+import io.kettle.core.resource.ResourceMetadata;
+import io.kettle.core.resource.extension.DefinitionResourceSpec;
+import io.kettle.core.resource.extension.ResourceScope;
+import io.kettle.core.resource.type.ResourceType;
+import io.kettle.core.storage.ResourcesRepository;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
@@ -80,7 +82,7 @@ public class ApiServerRequestHandler implements RequestHandler {
                     break;
             }
         } catch ( RequestValidationException e ) {
-            log.info("Error validating request ", e.getMessage());
+            log.info("Error validating request", e);
             ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(e.getMessage());
         } catch ( Exception e ) {
             log.error("Unknow error ", e);
@@ -210,7 +212,7 @@ public class ApiServerRequestHandler implements RequestHandler {
             Resource resource = getRequestObjectMapper(requestContext).readValue(body.getBytes(), Resource.class);
 
             Resource existingResource = resourcesRepository.getResource(
-                    new ResourceKey(ApiServerUtils.formatApiVersion(requestContext.group(), requestContext.version()),
+                    new ResourceKey(KettleUtils.formatApiVersion(requestContext.group(), requestContext.version()),
                             requestContext.kind(), requestContext.resourceType(), requestContext.resourceName().get()));
             if ( existingResource == null ) {
                 requestContext.httpContext().response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
@@ -262,7 +264,7 @@ public class ApiServerRequestHandler implements RequestHandler {
             throws IOException, JsonParseException, JsonMappingException, RequestValidationException {
         Buffer body = requestContext.httpContext().getBody();
         Resource resource = getRequestObjectMapper(requestContext).readValue(body.getBytes(), Resource.class);
-        if ( !ApiServerUtils.formatApiVersion(requestContext.group(), requestContext.version())
+        if ( !KettleUtils.formatApiVersion(requestContext.group(), requestContext.version())
                 .equals(resource.getApiVersion()) ) {
             throw new RequestValidationException("apiVersion doesn't match");
         }
@@ -366,18 +368,18 @@ public class ApiServerRequestHandler implements RequestHandler {
     }
 
     private ResourceKey resourceKey(ApiServerRequestContext requestContext) {
-        return new ResourceKey(ApiServerUtils.formatApiVersion(requestContext.group(), requestContext.version()),
+        return new ResourceKey(KettleUtils.formatApiVersion(requestContext.group(), requestContext.version()),
                 requestContext.kind(), requestContext.resourceType(), requestContext.resourceName().get());
     }
 
     private List<Resource> list(ApiServerRequestContext requestContext) {
         if ( requestContext.resourceType().scope() == ResourceScope.Global ) {
             return resourcesRepository.doGlobalQuery(
-                    ApiServerUtils.formatApiVersion(requestContext.group(), requestContext.version()),
+                    KettleUtils.formatApiVersion(requestContext.group(), requestContext.version()),
                     requestContext.kind());
         } else {
             return resourcesRepository.doNamespacedQuery(
-                    ApiServerUtils.formatApiVersion(requestContext.group(), requestContext.version()),
+                    KettleUtils.formatApiVersion(requestContext.group(), requestContext.version()),
                     requestContext.kind(), requestContext.resourceType().namespace());
         }
     }

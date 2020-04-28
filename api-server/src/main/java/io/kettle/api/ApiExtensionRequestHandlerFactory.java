@@ -3,7 +3,7 @@ package io.kettle.api;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import io.kettle.api.storage.ResourcesRepository;
+import io.kettle.core.storage.ResourcesRepository;
 
 @ApplicationScoped
 public class ApiExtensionRequestHandlerFactory implements RequestHandlerFactory {

@@ -3,10 +3,10 @@ package io.kettle.api;
 import java.util.HashMap;
 import java.util.Optional;
 
-import io.kettle.api.resource.Resource;
-import io.kettle.api.resource.extension.DefinitionResourceSpec;
-import io.kettle.api.resource.extension.ResourceScope;
-import io.kettle.api.storage.ResourcesRepository;
+import io.kettle.core.resource.Resource;
+import io.kettle.core.resource.extension.DefinitionResourceSpec;
+import io.kettle.core.resource.extension.ResourceScope;
+import io.kettle.core.storage.ResourcesRepository;
 
 public class ApiExtensionRequestHandler extends ApiServerRequestHandler {
 

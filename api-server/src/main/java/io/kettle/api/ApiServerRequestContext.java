@@ -2,7 +2,7 @@ package io.kettle.api;
 
 import java.util.Optional;
 
-import io.kettle.api.resource.type.ResourceType;
+import io.kettle.core.resource.type.ResourceType;
 import io.vertx.ext.web.RoutingContext;
 
 public class ApiServerRequestContext {
