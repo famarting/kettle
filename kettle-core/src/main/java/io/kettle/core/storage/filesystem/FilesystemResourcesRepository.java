@@ -38,8 +38,6 @@ public class FilesystemResourcesRepository implements ResourcesRepository {
 
     private Logger log = LoggerFactory.getLogger(this.getClass());
 
-    @ConfigProperty(name = "kettle.storage.filesystem.path")
-    Optional<String> configStoragePathOpt;
     String configStoragePath;
 
     private ObjectMapper jsonMapper = new ObjectMapper();
@@ -188,10 +186,7 @@ public class FilesystemResourcesRepository implements ResourcesRepository {
     public boolean isCompatible(String connectionString) {
         if(connectionString.startsWith("file://")) {
             log.info("Initializing filesystem based persistence");
-            if (configStoragePathOpt.isEmpty() || configStoragePathOpt.get().isBlank()) {
-                throw new IllegalStateException("Config propery \"kettle.storage.filesystem.path\" is mandatory");
-            }
-            configStoragePath = configStoragePathOpt.get();
+            configStoragePath = connectionString.replace("file://", "");
             if (!configStoragePath.endsWith("/")) {
                 configStoragePath += "/";
             }

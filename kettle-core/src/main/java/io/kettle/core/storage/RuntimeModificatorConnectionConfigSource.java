@@ -20,9 +20,6 @@ public class RuntimeModificatorConnectionConfigSource implements ConfigSource {
         if (persistenceCfg.startsWith("mongodb://")) {
             cfg.put("quarkus.mongodb.connection-string", persistenceCfg);
         }
-        if (persistenceCfg.startsWith("file://")) {
-            cfg.put("kettle.storage.filesystem.path", persistenceCfg.replace("file://", ""));
-        }
         persistenceProperties = Collections.unmodifiableMap(cfg);
         log.info("New persistence cfg: {}", persistenceProperties.toString());
     }

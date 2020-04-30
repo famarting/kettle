@@ -29,11 +29,6 @@ public class KettleResourcesService implements ResourcesService {
 
     @Override
     public void setupPersistence(String connectionString) {
-//        if (persistenceConfig != null && !persistenceConfig.equals(connectionString)) {
-//            throw new IllegalStateException("Persistence config cannot be changed");
-//        } else if (persistenceConfig != null && persistenceConfig.equals(connectionString) && repository != null) {
-//            return;
-//        }
         if (persistenceConfig != null && persistenceConfig.equals(connectionString)) {
             return;
         }
