@@ -6,45 +6,54 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
+@RegisterForReflection
+@JsonInclude(Include.NON_NULL)
 public class KettleConfig {
 
+    @RegisterForReflection
+    @JsonInclude(Include.NON_NULL)
     public static class Cluster {
-        @JsonProperty("certificate-authority")
-        public String certificateAuthority;
-
-        @JsonProperty("certificate-authority-data")
-        public String certificateAuthorityData;
-
-        public String server;
-
-        public String getServer() {
-            return server;
-        }
+        @JsonProperty("connection-string")
+        public String connectionString;
     }
 
+    @JsonInclude(Include.NON_NULL)
+    @RegisterForReflection
     public static class ClusterReference {
         public String name;
         public Cluster cluster;
     }
 
+    @JsonInclude(Include.NON_NULL)
+    @RegisterForReflection
     public static class ContextReference {
         public Context context;
         public String name;
     }
 
+    @JsonInclude(Include.NON_NULL)
+    @RegisterForReflection
     public static class Context {
         public String cluster;
         public String namespace;
         public String user;
     }
 
+    @JsonInclude(Include.NON_NULL)
+    @RegisterForReflection
     public static class UserReference {
         public String name;
         public User user;
     }
 
+    @JsonInclude(Include.NON_NULL)
+    @RegisterForReflection
     public static class User {
         @JsonProperty("client-certificate")
         public String clientCertificate;
@@ -65,11 +74,15 @@ public class KettleConfig {
         public Map<String, Object> asUserExtra;
     }
 
+    @JsonInclude(Include.NON_NULL)
+    @RegisterForReflection
     public static class AuthProviderReference {
         public String name;
         public AuthProvider config;
     }
 
+    @JsonInclude(Include.NON_NULL)
+    @RegisterForReflection
     public static class AuthProvider {
         @JsonProperty("access-token")
         public String accessToken;
@@ -119,7 +132,7 @@ public class KettleConfig {
         for (ClusterReference cr : clusters)
             if (cr.name.equals(ctx.cluster))
                 return cr.cluster;
-        throw new IllegalStateException("There is no context called '" + ctx.cluster + "'.");
+        throw new IllegalStateException("There is no cluster called '" + ctx.cluster + "'.");
     }
 
     @JsonIgnore

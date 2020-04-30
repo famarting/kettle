@@ -1,9 +1,8 @@
 build:
-	mvn clean install -DtrimStackTrace=false
+	mvn clean install -DtrimStackTrace=false --no-transfer-progress -Pprod
 
-deploy:
-	mvn package -DskipTests
-	java -jar target/*-runner.jar
+build-native:
+	mvn clean install -DtrimStackTrace=false --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod
 
 dev:
 	mvn quarkus:dev
@@ -13,17 +12,3 @@ debug:
 
 test:
 	mvn test -DtrimStackTrace=false
-
-native:
-	mvn package -Pnative -Dquarkus.native.container-build=true
-
-run-native:
-	./target/*-runner
-
-container:
-	docker build -f src/main/docker/Dockerfile.jvm -t api-server-jvm .
-
-container-native:
-	docker build -f src/main/docker/Dockerfile.native -t api-server-native .
-
-.PHONY: deploy

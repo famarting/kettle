@@ -7,15 +7,16 @@ import io.kettle.core.resource.ResourceKey;
 import io.kettle.core.resource.extension.DefinitionResourceSpec;
 import io.kettle.core.resource.type.ResourceType;
 
-public interface ResourcesRepository {
+public interface ResourcesService {
 
-    public boolean isCompatible(String connectionString);
+    public void setupPersistence(String connectionString);
+
+    public void cacheCoreResource(DefinitionResourceSpec definition);
 
     /**
-     * Accepts any of it's names or short names
-     * Returns null if not found
+     * Accepts pluralName and kind
      */
-    public DefinitionResourceSpec findDefinitionResourceByNames(String name);
+    public DefinitionResourceSpec getDefinitionResource(String name);
 
     public void createResource(ResourceType resourceType, Resource resource);
 
@@ -25,12 +26,10 @@ public interface ResourcesRepository {
 
     public Resource getResource(ResourceKey key);
 
-    /**
-     * @param apiVersion in the form of group/version
-     * @param kind
-     * @param namespace can be null
-     * @return
-     */
-    public List<Resource> list(String apiVersion, String kind, String namespace);
+    public List<Resource> doNamespacedQuery(String apiVersion, String kind, String namespace);
+
+    public List<Resource> doGlobalQuery(String apiVersion, String kind);
+
+    // get by plural name
 
 }

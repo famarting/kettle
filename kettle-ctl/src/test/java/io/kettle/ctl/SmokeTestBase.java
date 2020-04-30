@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,53 +17,55 @@ import java.util.UUID;
 import javax.inject.Inject;
 
 import org.jboss.logging.Logger;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.kettle.core.resource.Resource;
-import io.kettle.core.storage.ResourcesRepository;
-import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.junit.QuarkusTest;
+import io.kettle.core.storage.ResourcesService;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
-@QuarkusTest
-@QuarkusTestResource(MongoTestResource.class)
-public class KettleCtlSmokeTest {
-
-    private static final Logger log = Logger.getLogger(KettleCtlSmokeTest.class);
+public abstract class SmokeTestBase {
+    private static final Logger log = Logger.getLogger(KettleMongodbSmokeTest.class);
 
     @Inject
-    ResourcesRepository repo;
+    ResourcesService repo;
 
-    @Test
-    void testKettle() throws Exception{
+    String kettleconfigArg;
+
+    abstract String kettleConfigPath();
+
+    @BeforeEach
+    private void prepareKettleConfigArg() throws IOException {
+        Path tempconfig = Files.createTempFile("kettleconfig", ".yaml");
+        Files.copy(Paths.get(kettleConfigPath()), tempconfig, StandardCopyOption.REPLACE_EXISTING);
+
+        kettleconfigArg = "--kettleconfig="+tempconfig.toString();
+    }
+
+    void doTestKettle() throws Exception{
         createNamespace("test-namespace-1");
 
         testKettleCtl("test-namespace-1");
 
         deleteNamespace("test-namespace-1");
         JsonArray namespaces = listNamespaces();
-        assertEquals(1, namespaces.size());
+        assertTrue(namespaces.stream()
+            .map(o -> (JsonObject)o)
+            .map(j -> j.getJsonObject("metadata").getString("name"))
+            .noneMatch(n -> n.equals("test-namespace-1")), "Namespace not deleted");
     }
 
-    @Test
-    void testContextNoExists() throws Exception {
+    void doTestContextNoExists() throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        new KettleRequestHandler(repo, System.out, new PrintStream(out), System.in).handle("config", "use-context", "dummy");
+        new KettleRequestHandler(repo, System.out, new PrintStream(out), System.in).handle("config", "use-context", "dummy", kettleconfigArg);
         assertTrue(out.size()>0, "Unexpected, no error");
     }
 
-    @Test
-    void testUseContext() throws Exception {
+    void doTestUseContext(String connStr) throws Exception {
 
-        Path tempconfig = Files.createTempFile("kettleconfig", ".yaml");
-        Files.copy(Paths.get("src/test/resources/kettle-config.yaml"), tempconfig, StandardCopyOption.REPLACE_EXISTING);
-
-        String kettleconfigArg = "--kettleconfig="+tempconfig.toString();
-
-        success("config", kettleconfigArg, "set-cluster", "my-cluster-1");
+        success("config", kettleconfigArg, "set-cluster", "my-cluster-1", "--connection-string="+connStr);
 
         success("config", kettleconfigArg, "set-context", "context-cluster-1", "--namespace=default", "--cluster=my-cluster-1");
 
@@ -77,7 +79,7 @@ public class KettleCtlSmokeTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         boolean res = new KettleRequestHandler(repo, System.out, new PrintStream(out), System.in).handle(args);
         assertTrue(out.size()==0, "Unexpected: "+out.toString());
-        assertTrue(res);
+        assertTrue(res, "Process failed");
     }
 
     void testKettleCtl(String namespaceName) throws Exception {
@@ -130,18 +132,18 @@ public class KettleCtlSmokeTest {
 
     private void deleteBookResource(String namespaceName, String book1Name) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        new KettleRequestHandler(repo, System.out, new PrintStream(out), System.in).handle("delete", "book", book1Name, "-n", namespaceName);
+        new KettleRequestHandler(repo, System.out, new PrintStream(out), System.in).handle("delete", "book", book1Name, "-n", namespaceName, kettleconfigArg);
         assertTrue(out.size() <= 0, "Error: " + out.toString());
     }
 
     private JsonArray listBooksResources(String namespaceName) throws Exception {
-        return list("get", "books", "-n", namespaceName, "-o", "json");
+        return list("get", "books", "-n", namespaceName, "-o", "json", kettleconfigArg);
     }
 
     private JsonObject getBookResource(String namespaceName, String book1Name) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
-        new KettleRequestHandler(repo, new PrintStream(out), new PrintStream(err), System.in).handle("get", "books", book1Name, "-n", namespaceName, "-o", "json");
+        new KettleRequestHandler(repo, new PrintStream(out), new PrintStream(err), System.in).handle("get", "books", book1Name, "-n", namespaceName, "-o", "json", kettleconfigArg);
         if (err.size() > 0) {
             Assertions.fail(err.toString());
         }
@@ -156,19 +158,19 @@ public class KettleCtlSmokeTest {
         Files.write(path, book1.encode().getBytes());
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        new KettleRequestHandler(repo, System.out, new PrintStream(out), System.in).handle("apply", "-f", path.toString(), "-n", namespaceName);
+        new KettleRequestHandler(repo, System.out, new PrintStream(out), System.in).handle("apply", "-f", path.toString(), "-n", namespaceName, kettleconfigArg);
         assertTrue(out.size() <= 0, "Error: " + out.toString());
 
         return book1;
     }
 
     private JsonArray listNamespaces() throws Exception {
-        return list("get", "namespaces", "-o", "json");
+        return list("get", "namespaces", "-o", "json", kettleconfigArg);
     }
 
     private void deleteNamespace(String namespaceName) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        new KettleRequestHandler(repo, System.out, new PrintStream(out), System.in).handle("delete", "namespace", namespaceName);
+        new KettleRequestHandler(repo, System.out, new PrintStream(out), System.in).handle("delete", "namespace", namespaceName, kettleconfigArg);
         assertTrue(out.size() <= 0, "Error: " + out.toString());
     }
 
@@ -179,17 +181,17 @@ public class KettleCtlSmokeTest {
         Files.write(path, testNamespace.encode().getBytes());
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        new KettleRequestHandler(repo, System.out, new PrintStream(out), System.in).handle("apply", "-f", path.toString());
+        new KettleRequestHandler(repo, System.out, new PrintStream(out), System.in).handle("apply", "-f", path.toString(), kettleconfigArg);
         assertTrue(out.size() <= 0, "Error: " + out.toString());
     }
 
     private JsonArray listDefinitions() throws Exception {
-        return list("get", "resourcesdefinitions", "-o", "json");
+        return list("get", "resourcesdefinitions", "-o", "json", kettleconfigArg);
     }
 
     private JsonArray list(String... args) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        new KettleRequestHandler(repo, new PrintStream(out), System.err, System.in).handle(args);
+        assertTrue(new KettleRequestHandler(repo, new PrintStream(out), System.err, System.in).handle(args), "Process failed");
         JsonObject list = new JsonObject(out.toString());
         return list.getJsonArray("items");
     }
@@ -197,8 +199,9 @@ public class KettleCtlSmokeTest {
     private void deleteBookDefinition() throws Exception {
         String bookDefinitionName = "book-definition";
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        new KettleRequestHandler(repo, System.out, new PrintStream(out), System.in).handle("delete", "resourcesdefinitions", bookDefinitionName);
+        boolean res = new KettleRequestHandler(repo, System.out, new PrintStream(out), System.in).handle("delete", "resourcesdefinitions", bookDefinitionName, kettleconfigArg);
         assertTrue(out.size() <= 0, "Error: " + out.toString());
+        assertTrue(res, "Process failed");
     }
 
     private void createBookDefinition() throws Exception {
@@ -220,8 +223,9 @@ public class KettleCtlSmokeTest {
         Files.write(path, bookDefinition.encode().getBytes());
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        new KettleRequestHandler(repo, System.out, new PrintStream(out), System.in).handle("apply", "-f", path.toString());
+        boolean res = new KettleRequestHandler(repo, System.out, new PrintStream(out), System.in).handle("apply", "-f", path.toString(), kettleconfigArg);
         assertTrue(out.size() <= 0, "Error: " + out.toString());
+        assertTrue(res, "Process failed");
     }
 
     private JsonObject createResource(String apiVersion, String kind, String name) {

@@ -1,6 +1,7 @@
 package io.kettle.ctl;
 
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
@@ -19,7 +20,9 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -38,7 +41,7 @@ import io.kettle.core.resource.ResourceMetadata;
 import io.kettle.core.resource.extension.DefinitionResourceSpec;
 import io.kettle.core.resource.extension.ResourceScope;
 import io.kettle.core.resource.type.ResourceType;
-import io.kettle.core.storage.ResourcesRepository;
+import io.kettle.core.storage.ResourcesService;
 import io.kettle.ctl.config.KettleConfig;
 import io.kettle.ctl.config.KettleConfig.Cluster;
 import io.kettle.ctl.config.KettleConfig.ClusterReference;
@@ -52,7 +55,7 @@ public class KettleRequestHandler {
 
     private static final String KETTLECONFIG_ENV_VAR = "KETTLECONFIG";
 
-    ResourcesRepository resourcesRepository;
+    ResourcesService resourcesRepository;
 
     PrintStream stdOut;
     PrintStream stdErr;
@@ -63,11 +66,11 @@ public class KettleRequestHandler {
 
     protected ObjectMapper jsonMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
-    public KettleRequestHandler(ResourcesRepository resourcesRepository) {
+    public KettleRequestHandler(ResourcesService resourcesRepository) {
         this(resourcesRepository, System.out, System.err, System.in);
     }
 
-    public KettleRequestHandler(ResourcesRepository resourcesRepository, PrintStream stdOut, PrintStream stdErr, InputStream stdIn) {
+    public KettleRequestHandler(ResourcesService resourcesRepository, PrintStream stdOut, PrintStream stdErr, InputStream stdIn) {
         this.resourcesRepository = resourcesRepository;
         this.stdOut = stdOut;
         this.stdErr = stdErr;
@@ -88,6 +91,7 @@ public class KettleRequestHandler {
                  case config:
                      return handleConfig(requestContext);
                 default:
+                    stdErr.println("Unknown operation");
                     return false;
             }
         } catch ( RequestValidationException e ) {
@@ -103,26 +107,6 @@ public class KettleRequestHandler {
             stdErr.println(e.getMessage());
             return false;
         }
-    }
-
-    private void loadContext(KettleRequestContextBuilder contextBuilder) throws Exception {
-        String kettleConfigPath = contextBuilder.getArgs().flag("--kettleconfig");
-        if (kettleConfigPath == null || kettleConfigPath.isBlank()) {
-            kettleConfigPath = System.getenv(KETTLECONFIG_ENV_VAR);
-            if (kettleConfigPath == null || kettleConfigPath.isBlank()) {
-                throw new RequestValidationException("KETTLECONFIG env var or --kettleconfig flag is missing");
-            }
-        }
-
-        Path configPath = Paths.get(kettleConfigPath);
-        if (Files.notExists(configPath)) {
-            throw new RequestValidationException("KETTLECONFIG file not found");
-        }
-        KettleConfig kettleConfig = yamlMapper.readValue(new FileInputStream(configPath.toFile()), KettleConfig.class);
-        if (kettleConfig.currentContext == null) {
-            throw new RequestValidationException("There is not current context set");
-        }
-        contextBuilder.setKettleConfig(kettleConfigPath, kettleConfig);
     }
 
     protected KettleRequestContext validateRequest(String... input) throws Exception {
@@ -165,12 +149,34 @@ public class KettleRequestHandler {
                 return validateResourceRequest(contextBuilder);
             case apply:
                 return validateApplyRequest(contextBuilder);
-                //TODO REMOVE CONTEXT RESOURCE
              case config:
                 return validateConfigRequest(contextBuilder);
         }
         throw new RequestValidationException("Operation not recognized");
     }
+
+    private void loadContext(KettleRequestContextBuilder contextBuilder) throws Exception {
+        String kettleConfigPath = contextBuilder.getArgs().flag("--kettleconfig");
+        if (kettleConfigPath == null || kettleConfigPath.isBlank()) {
+            kettleConfigPath = System.getenv(KETTLECONFIG_ENV_VAR);
+            if (kettleConfigPath == null || kettleConfigPath.isBlank()) {
+                throw new RequestValidationException("KETTLECONFIG env var or --kettleconfig flag is missing");
+            }
+        }
+
+        Path configPath = Paths.get(kettleConfigPath);
+        if (Files.notExists(configPath)) {
+            throw new RequestValidationException("KETTLECONFIG file not found");
+        }
+        KettleConfig kettleConfig = yamlMapper.readValue(new FileInputStream(configPath.toFile()), KettleConfig.class);
+        if (kettleConfig.currentContext == null) {
+            throw new RequestValidationException("There is not current context set");
+        }
+        contextBuilder.setKettleConfig(kettleConfigPath, kettleConfig);
+        //TODO cluster and connection string mandatory
+        resourcesRepository.setupPersistence(kettleConfig.getCluster().connectionString);
+    }
+
 
     private KettleRequestContext validateConfigRequest(KettleRequestContextBuilder contextBuilder) throws RequestValidationException {
 
@@ -195,6 +201,7 @@ public class KettleRequestHandler {
 
     private boolean handleConfig(KettleRequestContext requestContext) throws Exception {
 
+        String kettleConfigPath = requestContext.kettleConfigPath();
         KettleConfig kettleConfig = requestContext.kettleConfig();
 
         KettleConfigOperations configOp = KettleConfigOperations.fromValue(requestContext.arg(1));
@@ -208,8 +215,10 @@ public class KettleRequestHandler {
                     var clus = new ClusterReference();
                     clus.name = name;
                     clus.cluster = new Cluster();
+                    clus.cluster.connectionString = requestContext.flag("--connection-string");
                     //TODO cluster
                     kettleConfig.clusters.add(clus);
+                    return updateKettleConfig(kettleConfigPath, kettleConfig);
                 } else {
                     throw new RequestValidationException("Cluster "+name+" already exists");
                 }
@@ -223,6 +232,7 @@ public class KettleRequestHandler {
                     //TODO users
                     ctx.context.namespace = requestContext.flag("--namespace");
                     kettleConfig.contexts.add(ctx);
+                    return updateKettleConfig(kettleConfigPath, kettleConfig);
                 } else {
                     throw new RequestValidationException("Context "+name+" already exists");
                 }
@@ -232,12 +242,18 @@ public class KettleRequestHandler {
                     throw new RequestValidationException("Context "+name+" doesn't exists");
                 } else {
                     kettleConfig.currentContext = name;
+                    return updateKettleConfig(kettleConfigPath, kettleConfig);
                 }
+            //TODO current-context, get-contexts, get-clusters, view , and don't forget to log responses to output
+            default:
+                stdErr.println("Unknown operation");
+                return false;
         }
+    }
 
-        Path configPath = Paths.get(requestContext.kettleConfigPath());
+    private boolean updateKettleConfig(String kettleConfigPath, KettleConfig kettleConfig) throws Exception {
+        Path configPath = Paths.get(kettleConfigPath);
         yamlMapper.writeValue(configPath.toFile(), kettleConfig);
-
         return true;
     }
 
@@ -326,7 +342,13 @@ public class KettleRequestHandler {
 
             Resource deletedResource = delete(requestContext);
 
-            return sendResponse(requestContext, deletedResource);
+            if (deletedResource != null) {
+                stdOut.println("Resource "+deletedResource.getMetadata().getName()+" successfully deleted");
+                return true;
+            } else {
+                stdErr.println("Error, resource "+deletedResource.getMetadata().getName()+" not found");
+                return false;
+            }
 
         } else {
             throw new RequestValidationException("Resource name in path is mandatory for resource deletion");
@@ -352,7 +374,8 @@ public class KettleRequestHandler {
             resource.getMetadata().setUid(UUID.randomUUID().toString());
             resource.getMetadata().setCreationTimestamp(Instant.now().toString());
             create(requestContext, resource);
-            return sendResponse(requestContext, resource);
+            stdOut.println("Resource "+resource.getMetadata().getName()+" successfully saved");
+            return true;
         } else {
             resource.setId(existingResource.getId());
             resource.setMetadata(existingResource.getMetadata());
@@ -374,8 +397,8 @@ public class KettleRequestHandler {
                 resource.getStatus().putAll(statusToAdd);
             }
             update(requestContext, resource);
-
-            return sendResponse(requestContext, resource);
+            stdOut.println("Resource "+resource.getMetadata().getName()+" successfully updated");
+            return true;
         }
     }
 
@@ -384,13 +407,14 @@ public class KettleRequestHandler {
             var ns = resourcesRepository.getDefinitionResource(KettleConstants.NAMESPACE_RESOURCE_KIND);
             if (resourcesRepository.getResource(new ResourceKey(KettleUtils.formatApiVersion(ns.getGroup(), ns.getVersion()),
                     ns.getNames().getKind(), ResourceType.global(), requestContext.resourceType().namespace())) == null) {
-                if (requestContext.resourceType().namespace() == "default") { //lazy creation of default namespace, intentionally outside of kettle-core
+                if (requestContext.resourceType().namespace().equals("default")) { //lazy creation of default namespace, intentionally outside of kettle-core
+                    log.info("Lazy creating default namespace");
                     Resource namespace = new Resource();
                     namespace.setApiVersion(KettleUtils.formatApiVersion(ns.getGroup(), ns.getVersion()));
                     namespace.setKind(ns.getNames().getKind());
                     namespace.setMetadata(new ResourceMetadata());
                     namespace.getMetadata().setName("default");
-                    resourcesRepository.createResource(requestContext.resourceType(), namespace);
+                    resourcesRepository.createResource(ResourceType.global(), namespace);
                 } else {
                     throw new RequestValidationException("Namespace "+requestContext.resourceType().namespace()+" not found");
                 }
@@ -538,17 +562,13 @@ public class KettleRequestHandler {
                         Arrays.asList(item.getMetadata().getName(), item.getMetadata().getCreationTimestamp()),
                         new PartialObjectMetadata(item.getMetadata()));
             }).collect(Collectors.toList());
-            // Table table = new Table(tableColumnDefinitions, rows);
-            // requestContext.httpContext().response()
-            //         .putHeader(HttpHeaders.CONTENT_TYPE, "application/json;as=Table;v=v1beta1;g=meta.k8s.io")
-            //         .end(jsonMapper.writeValueAsString(table));
 
             var out = stdOut;
             String defaultMinumumSpaces = "   ";
             String header = tableColumnDefinitions.stream().map(d -> d.getName()).map(String::toUpperCase).collect(Collectors.joining(defaultMinumumSpaces));
             out.println(header);
             for (var row : rows) {
-                String line = row.getCells().stream().map(Object::toString).collect(Collectors.joining(defaultMinumumSpaces));
+                String line = row.getCells().stream().map(v -> v == null ? "" : v.toString()).collect(Collectors.joining(defaultMinumumSpaces));
                 out.println(line);
             }
         } else {
@@ -561,7 +581,6 @@ public class KettleRequestHandler {
         if ( requestContext.resourceName().isPresent() ) {
             Resource resource = resourcesRepository.getResource(resourceKey(requestContext));
             if ( resource == null ) {
-                // requestContext.httpContext().response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
                 stdErr.println("Resource not found");
                 return false;
             } else {

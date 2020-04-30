@@ -5,7 +5,7 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kettle.core.storage.ResourcesRepository;
+import io.kettle.core.storage.ResourcesService;
 import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
 
@@ -15,7 +15,7 @@ public class KettleApplication implements QuarkusApplication{
     private Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Inject
-    ResourcesRepository repo;
+    ResourcesService repo;
 
     @Override
     public int run(String... args) throws Exception {
