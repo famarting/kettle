@@ -36,7 +36,7 @@ import io.kettle.core.resource.ResourceMetadata;
 import io.kettle.core.resource.extension.DefinitionResourceSpec;
 import io.kettle.core.resource.extension.ResourceScope;
 import io.kettle.core.resource.type.ResourceType;
-import io.kettle.core.storage.ResourcesRepository;
+import io.kettle.core.storage.ResourcesService;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
@@ -46,14 +46,14 @@ public class ApiServerRequestHandler implements RequestHandler {
 
     private Logger log = LoggerFactory.getLogger(this.getClass());
 
-    ResourcesRepository resourcesRepository;
+    ResourcesService resourcesRepository;
 
     protected ObjectMapper yamlMapper = new YAMLMapper(new YAMLFactory().enable(Feature.MINIMIZE_QUOTES))
             .enable(SerializationFeature.INDENT_OUTPUT);
 
     protected ObjectMapper jsonMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
-    public ApiServerRequestHandler(ResourcesRepository resourcesRepository) {
+    public ApiServerRequestHandler(ResourcesService resourcesRepository) {
         this.resourcesRepository = resourcesRepository;
     }
 

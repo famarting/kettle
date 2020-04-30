@@ -20,7 +20,7 @@ import io.kettle.core.resource.extension.DefinitionResourceSpec;
 import io.kettle.core.resource.extension.ResourceNames;
 import io.kettle.core.resource.extension.ResourceScope;
 import io.kettle.core.resource.type.ResourceType;
-import io.kettle.core.storage.ResourcesRepository;
+import io.kettle.core.storage.ResourcesService;
 import io.quarkus.runtime.StartupEvent;
 
 @Singleton
@@ -32,7 +32,7 @@ public class KettleCore {
     Instance<KettleResourceService> services;
 
     @Inject
-    ResourcesRepository resourcesRepository;
+    ResourcesService resourcesRepository;
 
 
     public void init(@Observes StartupEvent ev) {

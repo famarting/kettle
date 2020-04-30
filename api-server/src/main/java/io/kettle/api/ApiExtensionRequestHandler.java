@@ -6,7 +6,7 @@ import java.util.Optional;
 import io.kettle.core.resource.Resource;
 import io.kettle.core.resource.extension.DefinitionResourceSpec;
 import io.kettle.core.resource.extension.ResourceScope;
-import io.kettle.core.storage.ResourcesRepository;
+import io.kettle.core.storage.ResourcesService;
 
 public class ApiExtensionRequestHandler extends ApiServerRequestHandler {
 
@@ -14,7 +14,7 @@ public class ApiExtensionRequestHandler extends ApiServerRequestHandler {
     private ApiServerRequestHandlerFactory defaultRequestHandlerFactory;
 
     public ApiExtensionRequestHandler(ApiResourcesService apiResourcesService,
-            ApiServerRequestHandlerFactory defaultRequestHandlerFactory, ResourcesRepository resourcesRepository) {
+            ApiServerRequestHandlerFactory defaultRequestHandlerFactory, ResourcesService resourcesRepository) {
         super(resourcesRepository);
         this.apiResourcesService = apiResourcesService;
         this.defaultRequestHandlerFactory = defaultRequestHandlerFactory;

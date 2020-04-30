@@ -1,10 +1,6 @@
 package io.kettle.core.storage.mongo;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -12,7 +8,7 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.MongoQueryException;
+import com.mongodb.client.MongoClient;
 
 import io.kettle.core.KettleConstants;
 import io.kettle.core.KettleUtils;
@@ -35,7 +31,16 @@ public class ResourcesRepositoryImpl implements ResourcesRepository {
     @Inject
     MongoResourcesRepository repository;
 
-    private Map<String, DefinitionResourceSpec> coreResourcesCache = new HashMap<>();
+    MongoClient client;
+
+    @Override
+    public boolean isCompatible(String connectionString) {
+        if(connectionString.startsWith("mongodb://")) {
+            log.info("Initializing filesystem based persistence");
+            return true;
+        }
+        return false;
+    }
 
     @Override
     public Resource deleteResource(ResourceKey key) {
@@ -68,67 +73,35 @@ public class ResourcesRepositoryImpl implements ResourcesRepository {
     }
 
     @Override
-    public List<Resource> doNamespacedQuery(String apiVersion, String kind, String namespace) {
-        Parameters parameters = Parameters.with("apiVersion", apiVersion)
-                .and("kind", kind)
-                .and("namespace", namespace);
-        String query = "apiVersion = :apiVersion and kind = :kind and metadata.namespace = :namespace";
-        return repository.find(query, parameters).list();
-    }
-
-    @Override
-    public List<Resource> doGlobalQuery(String apiVersion, String kind) {
+    public List<Resource> list(String apiVersion, String kind, String namespace) {
         Parameters parameters = Parameters.with("apiVersion", apiVersion)
                 .and("kind", kind);
         String query = "apiVersion = :apiVersion and kind = :kind";
+        if (namespace != null) {
+            parameters = parameters.and("namespace", namespace);
+            query = query + " and metadata.namespace = :namespace";
+        }
         return repository.find(query, parameters).list();
     }
 
     @Override
-    public DefinitionResourceSpec getDefinitionResource(String pluralName) {
-        DefinitionResourceSpec definition = coreResourcesCache.get(pluralName);
-        if ( definition == null ) {
-            Parameters parameters = Parameters.with("apiVersion", KettleUtils.formatApiVersion(KettleConstants.CORE_API_GROUP, KettleConstants.CORE_API_VERSION))
-                    .and("kind", KettleConstants.DEFINITION_RESOURCE_KIND)
-                    .and("pluralName", pluralName);
-            String[] queries = new String[] {
-                            "apiVersion = :apiVersion and kind = :kind and spec.names.plural = :pluralName",
-                            "apiVersion = :apiVersion and kind = :kind and spec.names.kind = :pluralName",
-                            "apiVersion = :apiVersion and kind = :kind and spec.names.singular = :pluralName",
-                            "apiVersion = :apiVersion and kind = :kind and spec.shortNames = :pluralName"
-                            };
-            for (String q : queries) {
-                log.info("Trying query {}", q);
-                Resource resource = repository.find(q, parameters).firstResult();
-                if ( resource != null ) {
-                    return new DefinitionResourceSpec(resource.getSpec());
-                }
+    public DefinitionResourceSpec findDefinitionResourceByNames(String name) {
+        Parameters parameters = Parameters.with("apiVersion", KettleUtils.formatApiVersion(KettleConstants.CORE_API_GROUP, KettleConstants.CORE_API_VERSION))
+                .and("kind", KettleConstants.DEFINITION_RESOURCE_KIND)
+                .and("pluralName", name);
+        String[] queries = new String[] {
+                        "apiVersion = :apiVersion and kind = :kind and spec.names.plural = :pluralName",
+                        "apiVersion = :apiVersion and kind = :kind and spec.names.kind = :pluralName",
+                        "apiVersion = :apiVersion and kind = :kind and spec.names.singular = :pluralName",
+                        "apiVersion = :apiVersion and kind = :kind and spec.shortNames = :pluralName"
+                        };
+        for (String q : queries) {
+            Resource resource = repository.find(q, parameters).firstResult();
+            if ( resource != null ) {
+                return new DefinitionResourceSpec(resource.getSpec());
             }
-            return null;
-//            Resource resource = repository.find(query, parameters).firstResult();
-//            if ( resource != null ) {
-//                definition = new DefinitionResourceSpec(resource.getSpec());
-//            } else {
-//                query = "apiVersion = :apiVersion and kind = :kind and spec.names.kind = :pluralName";
-//                resource = repository.find(query, parameters).firstResult();
-//                if ( resource != null ) {
-//                    definition = new DefinitionResourceSpec(resource.getSpec());
-//                }
-//            }
         }
-        return definition;
-    }
-
-    @Override
-    public void cacheCoreResource(DefinitionResourceSpec definition) {
-        coreResourcesCache.put(definition.getNames().getPlural(), definition);
-        coreResourcesCache.put(definition.getNames().getKind(), definition);
-        coreResourcesCache.put(definition.getNames().getSingular(), definition);
-        Optional.ofNullable(definition.getShortNames())
-            .orElseGet(Collections::emptyList)
-            .forEach(s -> {
-                coreResourcesCache.put(s, definition);
-            });
+        return null;
     }
 
 }

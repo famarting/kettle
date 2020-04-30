@@ -10,6 +10,7 @@ import java.util.function.BiConsumer;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +22,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import io.kettle.core.KettleResourceService;
 import io.kettle.core.KettleUtils;
 import io.kettle.core.resource.extension.DefinitionResourceSpec;
-import io.kettle.core.storage.ResourcesRepository;
+import io.kettle.core.storage.ResourcesService;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
@@ -39,12 +40,12 @@ public class ApiResourcesManager implements KettleResourceService {
     private ApiExtensionRequestHandlerFactory apiExtensionRequestHandlerFactory;
     private ApiGroupsService apiGroupsService;
     private ApiResourcesService apiResourcesService;
-    private ResourcesRepository resourcesRepository;
+    private ResourcesService resourcesRepository;
 
     @Inject
     public ApiResourcesManager(ApiServerRequestHandlerFactory defaultRequestHandlerFactory,
             ApiExtensionRequestHandlerFactory apiExtensionRequestHandlerFactory, ApiGroupsService apiGroupsService,
-            ApiResourcesService apiResourcesService, ResourcesRepository resourcesRepository) {
+            ApiResourcesService apiResourcesService, ResourcesService resourcesRepository) {
         this.defaultRequestHandlerFactory = defaultRequestHandlerFactory;
         this.apiExtensionRequestHandlerFactory = apiExtensionRequestHandlerFactory;
         this.apiGroupsService = apiGroupsService;
@@ -58,7 +59,11 @@ public class ApiResourcesManager implements KettleResourceService {
         registerApiGroups();
     }
 
+    @ConfigProperty(name = "quarkus.mongodb.connection-string")
+    String mongoConnString;
+
     public void loadResourcesDefinitions() {
+        resourcesRepository.setupPersistence(mongoConnString);
         resourcesRepository
                 .doGlobalQuery(KettleUtils.formatApiVersion(CORE_API_GROUP,
                         CORE_API_VERSION), DEFINITION_RESOURCE_KIND)
